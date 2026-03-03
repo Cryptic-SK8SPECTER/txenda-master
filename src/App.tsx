@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import Chat from "./pages/Chat";
+import RecoverPassword from "./pages/RecoverPassword";
 // Nearby page is rendered inside dashboard layout
 import NotFound from "./pages/NotFound";
 import CreatorDashboard from "./pages/CreatorDashboard";
@@ -30,6 +31,8 @@ const App = () => (
             element={<SubscriptionPage />}
           />
           <Route path="/dashboard/messages" element={<Chat />} />
+          {/* password recovery */}
+          <Route path="/recover" element={<RecoverPassword />} />
           {/* /dashboard/nearby is handled inside <Dashboard /> so the sidebar stays visible */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
