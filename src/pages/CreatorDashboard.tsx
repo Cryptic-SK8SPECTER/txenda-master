@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   KeyRound,
   Mail,
+  Trash2,
 } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -49,7 +50,7 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +59,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { contentService } from "@/services/contentService";
+import { useToast } from "@/hooks/use-toast";
 
 const currentPlan: string = "Standard";
 
@@ -77,6 +80,69 @@ const CreatorDashboard = () => {
   const [privatePhotos, setPrivatePhotos] = useState<string[]>([]);
   const publicInputRef = useRef<HTMLInputElement | null>(null);
   const privateInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [descricao, setDescricao] = useState("");
+  const [preco, setPreco] = useState("");
+  const [visibilidade, setVisibilidade] = useState("Exclusivo assinantes");
+  const [isAtivo, setIsAtivo] = useState(true);
+
+  const { toast } = useToast();
+  const [myContents, setMyContents] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // 2. Função para carregar conteúdos
+  const loadContents = async () => {
+    try {
+      const res = await contentService.getMyContents();
+      setMyContents(res.data.data);
+    } catch (err) {
+      console.error("Erro ao carregar conteúdos", err);
+    }
+  };
+
+  useEffect(() => {
+    loadContents();
+  }, []);
+
+  // 3. Função para Upload de novo ficheiro
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', 'Novo Conteúdo'); // Pode adicionar um prompt para o título
+    formData.append('type', file.type.startsWith('video') ? 'video' : 'image');
+
+    setIsUploading(true);
+    try {
+      await contentService.createContent(formData);
+      toast({ title: "Sucesso!", description: "Conteúdo carregado com sucesso." });
+      loadContents(); // Atualiza a lista
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro no upload",
+        description: err.response?.data?.message || "Erro desconhecido"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 4. Função para Apagar
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja apagar este conteúdo?")) return;
+
+    try {
+      await contentService.deleteContent(id);
+      toast({ title: "Apagado", description: "O ficheiro foi removido do servidor." });
+      loadContents();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erro ao apagar" });
+    }
+  };
 
   const handlePublicFiles = (files: FileList | null) => {
     if (!files) return;
@@ -178,28 +244,52 @@ const CreatorDashboard = () => {
     setConfirmEmail("");
   };
 
+  // Dentro da função handleManualPublish
+  const handleManualPublish = async () => {
+    if (!uploadFile) return;
+
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+    formData.append('description', descricao);
+    formData.append('price', preco);
+
+    // Enviamos o valor que o usuário escolheu no Select
+    formData.append('visibility', visibilidade);
+
+    setIsUploading(true);
+    try {
+      await contentService.createContent(formData);
+      toast({ title: "Sucesso!", description: "Conteúdo publicado." });
+      loadContents();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erro no upload" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+
+
   // Filter and pagination for published contents
   const [filterType, setFilterType] = useState<
-    "all" | "public" | "subscribers" | "ppv" | "hidden"
+    "all" | "Publico" | "Exclusivo assinantes" | "Pago individualmente" 
   >("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
   const filteredContents = contents.filter((c) => {
     if (filterType === "all") return true;
-    if (filterType === "hidden")
-      return c.badge === "Oculto" || c.active === false;
-    if (filterType === "subscribers")
+    if (filterType === "Exclusivo assinantes")
       return (
         c.badge?.toLowerCase().includes("assinantes") ||
         c.badge?.toLowerCase().includes("assinante")
       );
-    if (filterType === "ppv")
+    if (filterType === "Pago individualmente")
       return (
         c.badge?.toLowerCase().includes("pago") ||
-        c.badge?.toLowerCase().includes("ppv")
+        c.badge?.toLowerCase().includes("Pago individualmente")
       );
-    if (filterType === "public")
+    if (filterType === "Publico")
       return (
         !c.badge ||
         (c.badge && !["Oculto", "Pago individualmente"].includes(c.badge))
@@ -434,69 +524,56 @@ const CreatorDashboard = () => {
                             </div>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            {/* Upload */}
+                            {/* Upload de Ficheiro */}
                             <div className="space-y-2">
-                              <Label className="text-xs text-slate-300">
-                                Upload de foto ou vídeo
-                              </Label>
+                              <Label className="text-xs text-slate-300">Upload de foto ou vídeo</Label>
                               <div className="flex flex-col gap-3 sm:flex-row">
-                                <div className="flex-1 rounded-xl border border-dashed border-border/60 bg-secondary/60 px-4 py-6 text-center text-xs text-muted-foreground">
+                                <div className={`flex-1 rounded-xl border border-dashed ${uploadFile ? 'border-emerald-500 bg-emerald-500/10' : 'border-border/60 bg-secondary/60'} px-4 py-6 text-center text-xs text-muted-foreground transition-colors`}>
                                   <div className="mb-2 flex justify-center gap-3">
-                                    <Camera className="h-5 w-5 text-fuchsia-300" />
-                                    <Video className="h-5 w-5 text-purple-300" />
+                                    <Camera className={`h-5 w-5 ${uploadFile?.type.startsWith('image') ? 'text-emerald-400' : 'text-fuchsia-300'}`} />
+                                    <Video className={`h-5 w-5 ${uploadFile?.type.startsWith('video') ? 'text-emerald-400' : 'text-purple-300'}`} />
                                   </div>
                                   <p className="font-medium text-foreground">
-                                    Arraste aqui ou clique para fazer upload
-                                  </p>
-                                  <p className="mt-1 text-[11px] text-muted-foreground">
-                                    Formatos suportados: JPG, PNG, MP4 · Máx.
-                                    500 MB
+                                    {uploadFile ? `Selecionado: ${uploadFile.name}` : "Arraste aqui ou clique para fazer upload"}
                                   </p>
                                   <Input
                                     type="file"
+                                    accept="image/*,video/*"
+                                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                                     className="mt-3 cursor-pointer border-input bg-background text-[11px] file:mr-3 file:rounded-md file:border-0 file:bg-primary/80 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-primary-foreground hover:file:bg-primary"
                                   />
                                 </div>
                               </div>
                             </div>
 
-                            {/* Description & price */}
+                            {/* Description & Price */}
                             <div className="grid gap-3 grid-cols-1">
                               <div className="space-y-2 w-full">
-                                <Label
-                                  htmlFor="descricao"
-                                  className="text-xs text-muted-foreground"
-                                >
-                                  Descrição
-                                </Label>
+                                <Label htmlFor="descricao" className="text-xs text-muted-foreground">Descrição</Label>
                                 <Textarea
                                   id="descricao"
+                                  value={descricao}
+                                  onChange={(e) => setDescricao(e.target.value)}
                                   placeholder="Escreva uma descrição discreta e atrativa para o seu conteúdo..."
                                   className="w-full min-h-[90px] resize-none border-input bg-background text-xs placeholder:text-muted-foreground"
                                 />
                               </div>
+
                               <div className="space-y-3 rounded-xl border border-border bg-card/60 p-3 w-full">
                                 <div className="space-y-1.5">
-                                  <Label
-                                    htmlFor="preco"
-                                    className="flex items-center justify-between text-xs text-muted-foreground"
-                                  >
+                                  <Label htmlFor="preco" className="flex items-center justify-between text-xs text-muted-foreground">
                                     <span>Preço individual</span>
-                                    <span className="text-[11px] text-muted-foreground">
-                                      Opcional para conteúdos pagos
-                                    </span>
+                                    <span className="text-[11px]">Opcional para conteúdos pagos</span>
                                   </Label>
                                   <div className="flex items-center gap-2">
-                                    <span className="rounded-md border border-border bg-secondary px-2 py-1 text-[11px] text-foreground/80">
-                                      MZN
-                                    </span>
+                                    <span className="rounded-md border border-border bg-secondary px-2 py-1 text-[11px]">MZN</span>
                                     <Input
                                       id="preco"
                                       type="number"
-                                      min={0}
-                                      step={0.5}
-                                      placeholder="9,90"
-                                      className="w-full border-input bg-background text-xs placeholder:text-muted-foreground"
+                                      value={preco}
+                                      onChange={(e) => setPreco(e.target.value)}
+                                      placeholder="0.00"
+                                      className="w-full border-input bg-background text-xs"
                                     />
                                   </div>
                                 </div>
@@ -504,59 +581,36 @@ const CreatorDashboard = () => {
                                 <Separator className="border-border/80" />
 
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">
-                                    Visibilidade
-                                  </Label>
-                                  <Select defaultValue="subscribers">
-                                    <SelectTrigger className="w-full h-8 border-input bg-background text-xs text-foreground">
-                                      <SelectValue placeholder="Selecione uma opção" />
+                                  <Label className="text-xs text-muted-foreground">Visibilidade</Label>
+                                  <Select value={visibilidade} onValueChange={setVisibilidade}>
+                                    <SelectTrigger className="w-full h-8 border-input bg-background text-xs">
+                                      <SelectValue placeholder="Selecione a visibilidade" />
                                     </SelectTrigger>
-                                    <SelectContent className="border-border bg-card text-xs text-foreground">
-                                      <SelectItem
-                                        value="public"
-                                        className="text-xs"
-                                      >
-                                        Público · visível para todos
-                                      </SelectItem>
-                                      <SelectItem
-                                        value="subscribers"
-                                        className="text-xs"
-                                      >
-                                        Exclusivo para assinantes
-                                      </SelectItem>
-                                      <SelectItem
-                                        value="ppv"
-                                        className="text-xs"
-                                      >
-                                        Pago individualmente (PPV)
-                                      </SelectItem>
+                                    <SelectContent className="border-border bg-card text-xs">
+                                      <SelectItem value="Público">Público</SelectItem>
+                                      <SelectItem value="Exclusivo assinantes">Exclusivo assinantes</SelectItem>
+                                      <SelectItem value="Pago individualmente">Pago individualmente</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  <p className="text-[11px] text-muted-foreground">
-                                    Controle quem pode ver este conteúdo. Os
-                                    detalhes nunca são exibidos fora da
-                                    plataforma.
-                                  </p>
                                 </div>
+
                                 <div className="flex items-center justify-between pt-1">
                                   <div className="flex items-center gap-2">
                                     <Switch
                                       id="ativo"
-                                      defaultChecked
-                                      className="data-[state=checked]:bg-primary"
+                                      checked={isAtivo}
+                                      onCheckedChange={setIsAtivo}
+                                      className="data-[state=checked]:bg-emerald-500"
                                     />
-                                    <Label
-                                      htmlFor="ativo"
-                                      className="text-xs text-muted-foreground"
-                                    >
-                                      Conteúdo ativo
-                                    </Label>
+                                    <Label htmlFor="ativo" className="text-xs text-muted-foreground">Conteúdo ativo</Label>
                                   </div>
                                   <Button
+                                    onClick={handleManualPublish} // Função que vamos criar abaixo
+                                    disabled={isUploading || !uploadFile}
                                     size="sm"
                                     className="h-8 rounded-full bg-emerald-600 px-3 text-[11px] font-semibold text-emerald-50 hover:bg-emerald-500"
                                   >
-                                    Publicar agora
+                                    {isUploading ? "Publicando..." : "Publicar agora"}
                                   </Button>
                                 </div>
                               </div>
@@ -595,11 +649,11 @@ const CreatorDashboard = () => {
                                   onValueChange={(v) => {
                                     setFilterType(
                                       v as
-                                        | "all"
-                                        | "public"
-                                        | "subscribers"
-                                        | "ppv"
-                                        | "hidden",
+                                      | "all"
+                                      | "Publico"
+                                      | "Exclusivo assinantes"
+                                      | "Pago individualmente"
+                                      | "hidden",
                                     );
                                     setPage(1);
                                   }}
@@ -612,19 +666,19 @@ const CreatorDashboard = () => {
                                       Todos
                                     </SelectItem>
                                     <SelectItem
-                                      value="public"
+                                      value="Publico"
                                       className="text-xs"
                                     >
                                       Público
                                     </SelectItem>
                                     <SelectItem
-                                      value="subscribers"
+                                      value="Exclusivo assinantes"
                                       className="text-xs"
                                     >
                                       Assinantes
                                     </SelectItem>
-                                    <SelectItem value="ppv" className="text-xs">
-                                      PPV
+                                    <SelectItem value="Pago individualmente" className="text-xs">
+                                      Pago individualmente
                                     </SelectItem>
                                     <SelectItem
                                       value="hidden"
@@ -714,82 +768,95 @@ const CreatorDashboard = () => {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {paginated.map((c) => (
+                                  {/* Substituímos 'paginated' pelo seu estado real, ex: myContents */}
+                                  {myContents.map((c: any) => (
                                     <TableRow
-                                      key={c.id}
+                                      key={c._id}
                                       className="border-border/60 bg-card/30 hover:bg-card/60"
                                     >
                                       <TableCell className="align-top">
                                         <div className="flex items-center gap-3">
-                                          <div className="h-11 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-gradient-to-br from-background via-background to-black" />
+                                          {/* Renderização da Miniatura Real */}
+                                          <div className="h-11 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-background">
+                                            {c.type === 'video' ? (
+                                              <video
+                                                src={`http://localhost:9000/img/contents/${c.url}`}
+                                                className="h-full w-full object-cover"
+                                              />
+                                            ) : (
+                                              <img
+                                                src={`http://localhost:9000/img/contents/${c.url}`}
+                                                className="h-full w-full object-cover"
+                                                alt={c.type}
+                                              />
+                                            )}
+                                          </div>
                                           <div className="space-y-0.5">
                                             <p className="line-clamp-1 text-xs font-medium text-foreground">
-                                              {c.title}
+                                              {c.description || "Sem título"}
                                             </p>
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                              {c.badge && (
-                                                <Badge className="border-fuchsia-500/60 bg-fuchsia-500/10 px-1.5 text-[10px]">
-                                                  {c.badge}
-                                                </Badge>
-                                              )}
+                                              <Badge className="border-fuchsia-500/60 bg-fuchsia-500/10 px-1.5 text-[10px]">
+                                                {c.type}
+                                              </Badge>
                                               <span className="text-[10px] text-muted-foreground">
-                                                {c.publishedAt}
+                                                {new Date(c.createdAt).toLocaleDateString('pt-PT')}
                                               </span>
                                             </div>
                                           </div>
                                         </div>
                                       </TableCell>
+
+                                      {/* Vendas e Receita (Vindo do Model se tiver esses campos, senão 0) */}
                                       <TableCell className="align-top text-xs text-foreground/90">
-                                        {c.sales ?? "—"}
+                                        {c.salesCount || 0}
                                       </TableCell>
                                       <TableCell className="align-top text-xs font-mono text-emerald-300">
-                                        {c.revenue}
+                                        {c.price ? `${c.price} MT` : "Grátis"}
                                       </TableCell>
+
                                       <TableCell className="align-top">
                                         <div className="flex items-center gap-1.5">
                                           <span
-                                            className={`h-2 w-2 rounded-full ${c.active ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" : "bg-muted-foreground/60"}`}
+                                            className={`h-2 w-2 rounded-full ${c.active !== false
+                                              ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]"
+                                              : "bg-muted-foreground/60"
+                                              }`}
                                           />
-                                          <span
-                                            className={`text-[11px] ${c.active ? "text-emerald-200" : "text-muted-foreground"}`}
-                                          >
-                                            {c.active
-                                              ? "Ativo"
-                                              : c.badge === "Oculto"
-                                                ? "Oculto"
-                                                : "Inativo"}
+                                          <span className={`text-[11px] ${c.active !== false ? "text-emerald-200" : "text-muted-foreground"}`}>
+                                            {c.active !== false ? "Ativo" : "Inativo"}
                                           </span>
                                         </div>
                                       </TableCell>
+
                                       <TableCell className="align-top">
                                         <div className="flex justify-end gap-1.5">
+                                          {/* Editar (A implementar) */}
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => editContent(c.id)}
                                             className="h-7 w-7 rounded-full border border-border bg-card/60 text-muted-foreground hover:bg-card"
                                           >
                                             <Settings2 className="h-3.5 w-3.5" />
                                           </Button>
+
+                                          {/* Toggle Visibilidade (Exemplo) */}
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => toggleActive(c.id)}
-                                            className={`h-7 w-7 rounded-full border border-border bg-card/60 ${c.active ? "text-rose-300 hover:bg-rose-500/10 hover:text-rose-100" : "text-emerald-200 hover:bg-emerald-500/10 hover:text-emerald-100"}`}
+                                            className="h-7 w-7 rounded-full border border-border bg-card/60 text-emerald-200"
                                           >
-                                            {c.active ? (
-                                              <EyeOff className="h-3.5 w-3.5" />
-                                            ) : (
-                                              <Eye className="h-3.5 w-3.5" />
-                                            )}
+                                            <Eye className="h-3.5 w-3.5" />
                                           </Button>
+
+                                          {/* Botão APAGAR Real conectado à sua função handleDelete */}
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => deleteContent(c.id)}
+                                            onClick={() => handleDelete(c._id)}
                                             className="h-7 w-7 rounded-full border border-border bg-card/60 text-rose-300 hover:bg-rose-500/10 hover:text-rose-100"
                                           >
-                                            <LogOut className="h-3.5 w-3.5 rotate-180" />
+                                            <Trash2 className="h-3.5 w-3.5" />
                                           </Button>
                                         </div>
                                       </TableCell>
@@ -1243,7 +1310,7 @@ const CreatorDashboard = () => {
                               },
                               {
                                 name: "João",
-                                badge: "PPV recente",
+                                badge: "Pago individualmente recente",
                                 preview:
                                   "O vídeo de bastidores ficou incrível. Valeu cada euro.",
                                 time: "há 3 h",

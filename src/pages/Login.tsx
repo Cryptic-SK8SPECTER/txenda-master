@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
@@ -6,9 +7,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import logo from "@/assets/txenda.png";
+import { login } from "@/services/authService"; // Importe o serviço criado acima
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const data = await login(email, password);
+
+      toast({
+        title: "Sucesso!",
+        description: "Bem-vindo de volta ao Txenda.",
+      });
+
+      // Redireciona para o dashboard após login bem-sucedido
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro no login",
+        description: error.response?.data?.message || "Verifique suas credenciais.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center font-body p-6">
@@ -25,14 +58,17 @@ const Login = () => {
             </Link>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleLogin}>
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="seu@email.com"
+                placeholder="Informe o seu email"
                 className="mt-1.5 bg-secondary border-border"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -52,6 +88,9 @@ const Login = () => {
                 type="password"
                 placeholder="••••••••"
                 className="mt-1.5 bg-secondary border-border"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
@@ -69,8 +108,10 @@ const Login = () => {
               variant="hero"
               size="lg"
               className="w-full rounded-full text-base py-6"
+              type="submit"
+              disabled={isLoading}
             >
-              Entrar na Plataforma
+              {isLoading ? "Entrando..." : "Entrar na Plataforma"}
             </Button>
           </form>
 

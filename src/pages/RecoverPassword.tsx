@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
@@ -5,15 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import logo from "@/assets/txenda.png";
+import { useToast } from "@/hooks/use-toast";
+import { forgotPassword } from "@/services/authService";
 
 const RecoverPassword = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [email, setEmail] = useState("");
+  const { toast } = useToast();
+
+  const handleRecover = async (e: React.FormEvent) => {
     e.preventDefault();
-    // placeholder: send recovery email via API
-    alert("Se existir uma conta com esse email, receberá instruções em breve.");
-    navigate("/login");
+    try {
+      await forgotPassword(email);
+      toast({
+        title: "E-mail enviado!",
+        description: "Verifica a tua caixa de entrada (ou o Mailtrap).",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.response?.data?.message || "Utilizador não encontrado.",
+      });
+    }
   };
 
   return (
@@ -31,7 +47,7 @@ const RecoverPassword = () => {
             </Link>
           </div>
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleRecover}>
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -39,6 +55,7 @@ const RecoverPassword = () => {
                 type="email"
                 placeholder="seu@email.com"
                 className="mt-1.5 bg-secondary border-border"
+                value={email} onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -47,6 +64,7 @@ const RecoverPassword = () => {
               variant="hero"
               size="lg"
               className="w-full rounded-full text-base py-6"
+              type="submit"
             >
               Enviar link de recuperação
             </Button>

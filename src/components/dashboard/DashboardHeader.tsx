@@ -12,10 +12,25 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { logoutUser } from "@/services/authService";
+import { useToast } from "@/hooks/use-toast";
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const location = useLocation();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    
+    toast({
+      title: "Sessão encerrada",
+      description: "Você saiu com sucesso."
+    });
+
+    // Redireciona para o login
+    navigate("/login");
+  };
   const showSearch = location.pathname === "/dashboard";
 
   return (
@@ -140,7 +155,7 @@ const DashboardHeader = () => {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => navigate("/login")}
+              onClick={handleLogout}
               className="text-destructive"
             >
               Sair
