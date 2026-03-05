@@ -15,10 +15,25 @@ import { Filter, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterDialog from "@/components/dashboard/FilterDialog";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const location = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (searchParams.get("status") === "success") {
+      toast({
+        title: "Assinatura Ativada!",
+        description: "Bem-vindo ao clube premium. Aproveite as suas vantagens.",
+      });
+    }
+  }, [searchParams]);
 
   return (
     <SidebarProvider>

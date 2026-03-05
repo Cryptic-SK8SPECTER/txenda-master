@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -10,12 +11,77 @@ import {
   Star,
   ShieldCheck,
   Gem,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { planService } from "@/services/planService";
+import { loadStripe } from "@stripe/stripe-js";
+import axios from "axios";
+
+const stripePromise = loadStripe("pk_test_51T7TsvPkenJF9wWnwW6d7xzVyETjg7LBdfQ4Dp7CqZj47suCJ8rywUZqYJJ4fCEaqlgUp6T9U2gHbF86WrTGM7DV00c9EPETsW");
 
 const SubscriptionPage = () => {
+
+  const [plans, setPlans] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await planService.getAllPlans();
+        // Ajuste conforme a estrutura da sua resposta (ex: res.data.data)
+        setPlans(res.data);
+      } catch (err) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível carregar os planos."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  const handleSubscribe = async (planId: string) => {
+    try {
+      toast({
+        title: "Processando...",
+        description: "Estamos a preparar o seu checkout seguro.",
+      });
+  
+      // 1. Chamar o backend para criar a sessão
+      const response = await axios.get(
+        `http://localhost:9000/api/v1/subscriptions/checkout-session/${planId}`,
+        { withCredentials: true }
+      );
+  
+      // O Stripe agora devolve uma 'url' direta na sessão
+      const { session } = response.data;
+  
+      if (session && session.url) {
+        // 2. Redirecionamento direto via browser (não precisa mais do stripe.redirectToCheckout)
+        window.location.href = session.url;
+      } else {
+        throw new Error("URL de checkout não encontrada.");
+      }
+  
+    } catch (err: any) {
+      console.error("Erro ao iniciar subscrição:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: err.response?.data?.message || "Erro ao conectar com o provedor de pagamento.",
+      });
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-[#0a0a0a] text-white">
@@ -44,154 +110,87 @@ const SubscriptionPage = () => {
 
             {/* Grid de Planos */}
             <div className="px-4 lg:px-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Plano Standard */}
-              <Card className="relative p-8 bg-card/40 border-border backdrop-blur-sm flex flex-col hover:border-white/20 transition-colors">
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-2">Standard</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">MZN19,90</span>
-                    <span className="text-muted-foreground text-sm">/mês</span>
-                  </div>
-                </div>
+              {plans.map((plan: any) => {
+                // Lógica para definir estilos baseada no nome ou flag do plano vindo do BD
+                const isVIP = plan.name.toLowerCase().includes('vip') || plan.isPopular;
+                const isPremium = plan.name.toLowerCase().includes('premium');
+                const isStandard = !isVIP && !isPremium;
 
-                <ul className="space-y-4 mb-8 flex-1">
-                  <BenefitItem
-                    icon={<Check className="text-green-500" />}
-                    label="Acesso à comunidade"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-green-500" />}
-                    label="Até 5 fotos por mês"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-green-500" />}
-                    label="Até 2 vídeos por mês"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-muted-foreground/50" />}
-                    label="Mensagens limitadas"
-                    muted
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-muted-foreground/50" />}
-                    label="Visibilidade padrão"
-                    muted
-                  />
-                </ul>
+                return (
+                  <Card
+                    key={plan._id}
+                    className={`relative p-8 flex flex-col transition-colors ${isVIP
+                        ? "bg-[#111] border-amber-500/50 shadow-[0_0_40px_-10px_rgba(245,158,11,0.2)] scale-105 z-10 overflow-hidden"
+                        : "bg-card/40 border-border backdrop-blur-sm hover:border-white/20"
+                      }`}
+                  >
+                    {/* Renderização condicional do brilho e Badge para VIP */}
+                    {isVIP && (
+                      <>
+                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 blur-[80px] rounded-full" />
+                        <div className="absolute top-4 right-4">
+                          <Badge className="bg-amber-500 text-black font-bold border-none">
+                            RECOMENDADO
+                          </Badge>
+                        </div>
+                      </>
+                    )}
 
-                <Button
-                  variant="outline"
-                  className="w-full h-12 rounded-xl border-primary/20 hover:bg-primary/10"
-                >
-                  Escolher Plano
-                </Button>
-              </Card>
+                    <div className="mb-8">
+                      {isVIP && (
+                        <div className="flex items-center gap-2 text-amber-500 mb-1">
+                          <Crown className="h-5 w-5 fill-amber-500" />
+                          <span className="text-xs font-bold uppercase tracking-tighter">Ultimate Access</span>
+                        </div>
+                      )}
 
-              {/* Plano VIP (Destaque Central) */}
-              <Card className="relative p-8 bg-[#111] border-amber-500/50 shadow-[0_0_40px_-10px_rgba(245,158,11,0.2)] flex flex-col scale-105 z-10 overflow-hidden">
-                {/* Efeito de brilho de fundo */}
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 blur-[80px] rounded-full" />
+                      <h3 className={`text-xl font-bold mb-2 ${isVIP ? "text-2xl font-black italic" : isPremium ? "text-primary" : ""}`}>
+                        {plan.name}
+                      </h3>
 
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-amber-500 text-black font-bold border-none">
-                    RECOMENDADO
-                  </Badge>
-                </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className={`text-3xl font-bold ${isVIP ? "text-4xl font-black text-amber-500" : ""}`}>
+                          MZN {plan.price.toLocaleString('pt-MZ')}
+                        </span>
+                        <span className="text-muted-foreground text-sm">/mês</span>
+                      </div>
+                    </div>
 
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 text-amber-500 mb-1">
-                    <Crown className="h-5 w-5 fill-amber-500" />
-                    <span className="text-xs font-bold uppercase tracking-tighter">
-                      Ultimate Access
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-black mb-2 italic">VIP ELITE</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black text-amber-500">
-                      MZN79,90
-                    </span>
-                    <span className="text-muted-foreground text-sm">/mês</span>
-                  </div>
-                </div>
+                    {/* Listagem de Benefícios vindos do Array 'features' do Model */}
+                    <ul className="space-y-4 mb-8 flex-1">
+                      {plan.features?.map((feature: string, idx: number) => (
+                        <BenefitItem
+                          key={idx}
+                          icon={
+                            isVIP ? (
+                              <Infinity className="text-amber-500 h-4 w-4" />
+                            ) : (
+                              <Check className={isStandard ? "text-green-500" : "text-primary"} />
+                            )
+                          }
+                          label={feature}
+                          highlight={isVIP && idx < 3} // Destaca os 3 primeiros itens se for VIP
+                        />
+                      ))}
+                    </ul>
 
-                <ul className="space-y-4 mb-8 flex-1">
-                  <BenefitItem
-                    icon={<Infinity className="text-amber-500 h-4 w-4" />}
-                    label="Acesso total e ilimitado"
-                    highlight
-                  />
-                  <BenefitItem
-                    icon={<Infinity className="text-amber-500 h-4 w-4" />}
-                    label="Fotos ilimitadas"
-                    highlight
-                  />
-                  <BenefitItem
-                    icon={<Infinity className="text-amber-500 h-4 w-4" />}
-                    label="Vídeos ilimitados"
-                    highlight
-                  />
-                  <BenefitItem
-                    icon={
-                      <Star className="text-amber-500 h-4 w-4 fill-amber-500" />
-                    }
-                    label="Perfil em destaque topo feed"
-                  />
-                  <BenefitItem
-                    icon={<Gem className="text-amber-500 h-4 w-4" />}
-                    label="Selo VIP Verificado"
-                  />
-                  <BenefitItem
-                    icon={
-                      <Zap className="text-amber-500 h-4 w-4 fill-amber-500" />
-                    }
-                    label="Acesso antecipado a lançamentos"
-                  />
-                </ul>
-
-                <Button className="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold text-lg shadow-lg shadow-amber-500/20">
-                  Assinar Agora VIP
-                </Button>
-              </Card>
-
-              {/* Plano Premium */}
-              <Card className="relative p-8 bg-card/40 border-border backdrop-blur-sm flex flex-col hover:border-white/20 transition-colors">
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-2 text-primary">
-                    Premium
-                  </h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">MZN39,90</span>
-                    <span className="text-muted-foreground text-sm">/mês</span>
-                  </div>
-                </div>
-
-                <ul className="space-y-4 mb-8 flex-1">
-                  <BenefitItem
-                    icon={<Check className="text-primary" />}
-                    label="Acesso completo à comunidade"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-primary" />}
-                    label="Até 20 fotos por mês"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-primary" />}
-                    label="Até 10 vídeos por mês"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-primary" />}
-                    label="Mensagens ilimitadas"
-                  />
-                  <BenefitItem
-                    icon={<Check className="text-primary" />}
-                    label="Prioridade no feed"
-                  />
-                </ul>
-
-                <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold">
-                  Escolher Plano
-                </Button>
-              </Card>
+                    {/* Botão de Ação conectado ao Stripe Checkout */}
+                    <Button
+                      onClick={() => handleSubscribe(plan._id)}
+                      disabled={isLoading}
+                      variant={isStandard ? "outline" : "default"}
+                      className={`w-full h-12 rounded-xl font-bold ${isVIP
+                          ? "bg-amber-500 hover:bg-amber-600 text-black shadow-lg shadow-amber-500/20 text-lg"
+                          : isPremium
+                            ? "bg-primary hover:bg-primary/90"
+                            : "border-primary/20 hover:bg-primary/10"
+                        }`}
+                    >
+                      {isVIP ? "Assinar Agora VIP" : "Escolher Plano"}
+                    </Button>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Garantias de Confiança */}
