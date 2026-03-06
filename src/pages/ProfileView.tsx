@@ -26,11 +26,19 @@ import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import FilterDialog from "@/components/dashboard/FilterDialog";
+import { useAuth } from "@/context/AuthContext";
+import { basicUrl } from "@/utils/index";
 
 const ProfileView = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false); // Simulação de estado de assinatura
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const { user, profile } = useAuth();
+
+  console.log('PHOTOO ' , profile)
+  console.log('USEERRRR ' , user)
+
 
   return (
     <SidebarProvider>
@@ -45,8 +53,8 @@ const ProfileView = () => {
               {/* 🖼️ 1️⃣ Header do Perfil (Hero Image) */}
               <div className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1000&auto=format&fit=crop"
-                  alt="Profile"
+                  src={`${basicUrl}img/users/${profile.photo}`} 
+                  alt={user?.name}
                   className="w-full h-full object-cover"
                 />
                 {/* Overlay Gradiente */}
@@ -150,10 +158,7 @@ const ProfileView = () => {
                     <section>
                       <h3 className="text-lg font-semibold mb-2">Sobre mim</h3>
                       <p className="text-muted-foreground leading-relaxed">
-                        Procuro experiências discretas e pessoas decididas.
-                        Disponível para encontros presenciais e conteúdo
-                        exclusivo. Gosto de bons vinhos e conversas
-                        inteligentes. 🥂
+                       {profile.bio}
                       </p>
                     </section>
 

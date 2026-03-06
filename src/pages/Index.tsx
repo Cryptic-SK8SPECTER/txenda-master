@@ -33,7 +33,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background font-body">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroBg})` }}
@@ -41,7 +41,29 @@ const Index = () => {
         <div className="absolute inset-0 bg-background/70" />
         <div className="absolute inset-0" style={{ background: "var(--gradient-hero)", mixBlendMode: "multiply" }} />
 
-        <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-12 py-5">
+        <span className="font-display text-xl md:text-2xl font-bold text-foreground tracking-wider uppercase">
+          TXENDA
+        </span>
+        <nav className="hidden md:flex items-center gap-8">
+          {[
+            { label: "HOME", href: "#home" },
+            { label: "COMO FUNCIONA", href: "#como-funciona" },
+            { label: "VANTAGENS", href: "#vantagens" },
+          ].map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className="text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent hover:border-primary pb-1"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+      </header>
+
+      <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -84,7 +106,7 @@ const Index = () => {
       </section>
 
       {/* Como Funciona */}
-      <section className="py-24 bg-background">
+      <section id="como-funciona" className="py-24 bg-background">
         <div className="container mx-auto px-4 max-w-5xl">
           <motion.div
             initial="hidden"
@@ -138,7 +160,7 @@ const Index = () => {
       </section>
 
       {/* Por que escolher */}
-      <section className="py-24" style={{ background: "var(--gradient-dark)" }}>
+      <section id="vantagens" className="py-24" style={{ background: "var(--gradient-dark)" }}>
         <div className="container mx-auto px-4 max-w-6xl">
           <motion.div
             initial="hidden"

@@ -14,15 +14,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { logoutUser } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { basicUrl } from "@/utils/index";
+
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
 
+  const { user, profile } = useAuth();
+
+
   const handleLogout = async () => {
     await logoutUser();
-    
+
     toast({
       title: "Sessão encerrada",
       description: "Você saiu com sucesso."
@@ -133,10 +139,11 @@ const DashboardHeader = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop" />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                  U
-                </AvatarFallback>
+                {profile && profile.photo ? (
+                  <AvatarImage src={`${basicUrl}img/users/${profile.photo}`} alt={user?.name} />
+                ) : (
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                )}
               </Avatar>
               <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
             </Button>

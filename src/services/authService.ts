@@ -32,23 +32,17 @@ export const forgotPassword = async (email: string) => {
     return response.data;
   };
 
-  export const registerUser = async (userData: any) => {
-    const response = await axios.post(`${API_URL}/signup`, userData, {
+  export const registerUser = async (formData: FormData) => {
+    const response = await axios.post(`${API_URL}/signup`, formData, {
       withCredentials: true,
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
     return response.data;
   };
-
+  
   export const logoutUser = async () => {
     try {
       // 1. Chama a API para limpar o cookie (importante se usar httpOnly)
       await axios.get(`${API_URL}/logout`, { withCredentials: true });
-      
-      // 2. Limpa o localStorage
-      localStorage.removeItem('token');
       
       return { success: true };
     } catch (error) {

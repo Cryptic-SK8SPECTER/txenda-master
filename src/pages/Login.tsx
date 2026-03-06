@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import logo from "@/assets/txenda.png";
-import { login } from "@/services/authService"; // Importe o serviço criado acima
+import { login } from "@/services/authService"; 
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -18,20 +19,20 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const { signin } = useAuth();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const data = await login(email, password);
+      const res = await login(email, password);
 
-      toast({
-        title: "Sucesso!",
-        description: "Bem-vindo de volta ao Txenda.",
-      });
-
-      // Redireciona para o dashboard após login bem-sucedido
-      navigate("/dashboard");
+      if (res.status === 'success') {
+        // Agora passamos o token como segundo argumento
+        signin(res.data.user, res.token); 
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",

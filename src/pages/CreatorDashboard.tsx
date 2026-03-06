@@ -61,6 +61,9 @@ import {
 } from "@/components/ui/dialog";
 import { contentService } from "@/services/contentService";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { basicUrl } from "@/utils/index";
+import { Controller } from "react-hook-form";
 
 const currentPlan: string = "Standard";
 
@@ -90,6 +93,8 @@ const CreatorDashboard = () => {
   const { toast } = useToast();
   const [myContents, setMyContents] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { user, profile } = useAuth();
 
   // 2. Função para carregar conteúdos
   const loadContents = async () => {
@@ -272,7 +277,7 @@ const CreatorDashboard = () => {
 
   // Filter and pagination for published contents
   const [filterType, setFilterType] = useState<
-    "all" | "Publico" | "Exclusivo assinantes" | "Pago individualmente" 
+    "all" | "Publico" | "Exclusivo assinantes" | "Pago individualmente"
   >("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -317,15 +322,17 @@ const CreatorDashboard = () => {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3 sm:gap-4">
                   <Avatar className="h-11 w-11 border border-primary/40 shadow-[0_0_18px_rgba(251,113,133,0.35)]">
-                    <AvatarImage src="https://images.unsplash.com/photo-1521119989659-a83eee488004?w=120&h=120&fit=crop&q=80" />
-                    <AvatarFallback className="bg-secondary text-xs text-foreground/80">
-                      CR
-                    </AvatarFallback>
+                    {profile && profile.photo ? (
+                      <AvatarImage src={`${basicUrl}img/users/${profile.photo}`} alt={user?.name} />
+                    ) : (
+                      <AvatarFallback className="bg-secondary text-xs text-foreground/80">{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                    )}
+
                   </Avatar>
                   <div>
                     <div className="flex items-center gap-2">
                       <h1 className="font-display text-lg font-semibold sm:text-2xl">
-                        Alexandra Noir
+                        {user?.name}
                       </h1>
                       <Badge
                         variant="outline"

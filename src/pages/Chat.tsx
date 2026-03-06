@@ -1,8 +1,4 @@
 import React, { useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import {
   Send,
   Plus,
@@ -36,12 +32,8 @@ const Chat = () => {
   const [messagesLeft] = useState(3); // Apenas para plano Standard
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-[#0a0a0a] text-white">
-        <DashboardSidebar />
+      <>
 
-        <div className="flex-1 flex flex-col min-w-0 h-screen">
-          <DashboardHeader />
 
           {/* 1️⃣ Header do Chat */}
           <header className="px-4 py-3 border-b border-white/5 bg-card/20 backdrop-blur-md flex items-center justify-between">
@@ -251,10 +243,7 @@ const Chat = () => {
             </div>
           </footer>
 
-          <MobileBottomNav />
-        </div>
-      </div>
-    </SidebarProvider>
+      </>
   );
 };
 
