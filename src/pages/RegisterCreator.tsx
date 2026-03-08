@@ -27,50 +27,9 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import BrandingSection from "@/components/brand/BrandingSection";
+import { schema } from "@/utils/index";
 
-import registerBg from "@/assets/register-bg.jpg";
-
-// --- ESQUEMA DE VALIDAÇÃO ZOD ---
-const schema = z
-  .object({
-    email: z.string().email("E-mail inválido"),
-    password: z.string().min(8, "Mínimo 8 caracteres"),
-    passwordConfirm: z.string().min(8, "Mínimo 8 caracteres"),
-    displayName: z.string().min(2, "Nome muito curto"),
-    bio: z.string().max(500).optional(),
-    birthDate: z.string().refine((date) => {
-      const birth = new Date(date);
-      const now = new Date();
-      const age = now.getFullYear() - birth.getFullYear();
-      return age >= 18;
-    }, "Você deve ter pelo menos 18 anos"),
-    gender: z.enum(["masculino", "feminino", "outro", "prefiro_nao_dizer"]),
-    lookingFor: z.enum(["conteudos", "encontros", "ambos"]),
-    contentInterest: z.enum([
-      "Quero comprar conteudo",
-      "Quero vender conteudo",
-      "comprar e vender",
-      "Nao tenho interesse",
-    ]),
-    location: z.string().optional(),
-    phone: z.string().optional(),
-    socialLinks: z
-      .array(
-        z.object({
-          platform: z.string().min(1, "Obrigatório"),
-          url: z.string().url("URL inválida"),
-          username: z.string().optional(),
-        })
-      )
-      .max(5),
-    terms: z.literal(true, {
-      errorMap: () => ({ message: "Você deve aceitar os termos" }),
-    }),
-  })
-  .refine((data) => data.password === data.passwordConfirm, {
-    message: "As senhas não coincidem",
-    path: ["passwordConfirm"],
-  });
 
 type RegisterFormValues = z.infer<typeof schema>;
 
@@ -97,10 +56,10 @@ const Register = () => {
     resolver: zodResolver(schema),
     mode: "onTouched", // Só valida após o campo ser tocado — evita falsos negativos
     defaultValues: {
-      socialLinks: [],
       bio: "",
       phone: "",
       location: "",
+      role: "creator",
     },
   });
 
@@ -127,10 +86,6 @@ const Register = () => {
     );
   };
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "socialLinks",
-  });
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,12 +115,12 @@ const Register = () => {
       formData.append("password", data.password);
       formData.append("passwordConfirm", data.passwordConfirm);
       formData.append("lookingFor", data.lookingFor);
-      formData.append("contentInterest", data.contentInterest);
       formData.append("birthDate", data.birthDate);
       formData.append("bio", data.bio ?? "");
       formData.append("gender", data.gender);
       formData.append("phone", data.phone ?? "");
       formData.append("location", data.location ?? "");
+      formData.append("role", data.role);
 
       if (photo) {
         formData.append("photo", photo);
@@ -191,45 +146,8 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-background flex font-body">
-      {/* Left - Branding */}
-        {/* Left - Branding (hidden on mobile) */}
-        <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${registerBg})` }}
-        />
-        <div className="absolute inset-0 bg-background/60" />
-        <div className="relative z-10 p-12 max-w-lg">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <h1 className="font-display text-4xl font-bold mb-6 leading-tight">
-              Entre para uma comunidade{" "}
-              <span className="text-gradient">exclusiva</span>.
-            </h1>
-            <p className="text-foreground/70 text-lg mb-8">
-              Perfis verificados, conexões reais e conteúdo premium em um
-              ambiente seguro e discreto.
-            </p>
-            <div className="space-y-3">
-              {[
-                "+18 apenas",
-                "Comunidade por subscrição",
-                "Privacidade garantida",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                  <span className="text-foreground/80">{item}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </div>
+        
+        <BrandingSection /> 
 
       {/* Right - Form Carousel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
@@ -268,7 +186,7 @@ const Register = () => {
                         )}
                       </div>
                       <input type="file" hidden ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" />
-                      <Label className="mt-2 text-xs text-muted-foreground">Foto de Perfil</Label>
+                      <Label className ="mt-2 text-xs text-muted-foreground">Foto de Perfil</Label>
                     </div>
 
                     <div className="grid gap-2">
@@ -339,19 +257,6 @@ const Register = () => {
                       <ErrorMessage name="lookingFor" />
                     </div>
 
-                    <div className="grid gap-2">
-                      <Label>Interesse em Conteúdo</Label>
-                      <Select onValueChange={(v) => setValue("contentInterest", v as any, { shouldValidate: true })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Quero comprar conteudo">Quero comprar conteúdo</SelectItem>
-                          <SelectItem value="Quero vender conteudo">Quero vender conteúdo</SelectItem>
-                          <SelectItem value="comprar e vender">Comprar e vender</SelectItem>
-                          <SelectItem value="Nao tenho interesse">Não tenho interesse</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <ErrorMessage name="contentInterest" />
-                    </div>
 
                     <div className="grid gap-2">
                       <Label>Localização (Opcional)</Label>
@@ -363,74 +268,7 @@ const Register = () => {
                       <Button
                         type="button"
                         className="flex-1"
-                        onClick={() => handleNextStep(["gender", "lookingFor", "contentInterest"])}
-                      >
-                        Continuar
-                      </Button>
-                    </div>
-                  </div>
-                </CarouselItem>
-
-                {/* SEÇÃO 3: REDES SOCIAIS */}
-                <CarouselItem>
-                  <div className="space-y-4 p-1">
-                    <div className="flex justify-between items-center">
-                      <Label>Redes Sociais (Máx 5)</Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={fields.length >= 5}
-                        onClick={() => append({ platform: "instagram", url: "", username: "" })}
-                      >
-                        <Plus className="w-4 h-4 mr-1" /> Adicionar
-                      </Button>
-                    </div>
-
-                    <div className="max-h-[300px] overflow-y-auto space-y-4 pr-2">
-                      {fields.map((field, index) => (
-                        <div key={field.id} className="p-3 border rounded-lg relative space-y-2">
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => remove(index)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                          <Select
-                            defaultValue="instagram"
-                            onValueChange={(v) =>
-                              setValue(`socialLinks.${index}.platform`, v, { shouldValidate: true })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Plataforma" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {["instagram", "twitter", "facebook", "tiktok", "youtube"].map((p) => (
-                                <SelectItem key={p} value={p}>{p}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input {...register(`socialLinks.${index}.url`)} placeholder="https://..." />
-                          <Input {...register(`socialLinks.${index}.username`)} placeholder="@usuario (opcional)" />
-                        </div>
-                      ))}
-                      {fields.length === 0 && (
-                        <p className="text-center text-sm text-muted-foreground py-8">
-                          Nenhuma rede social adicionada.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 mt-4">
-                      <Button type="button" variant="outline" onClick={() => api?.scrollPrev()}><ChevronLeft /></Button>
-                      <Button
-                        type="button"
-                        className="flex-1"
-                        onClick={() => handleNextStep(["socialLinks"])}
+                        onClick={() => handleNextStep(["gender", "lookingFor"])}
                       >
                         Continuar
                       </Button>
@@ -483,7 +321,7 @@ const Register = () => {
                       <Button type="button" variant="outline" onClick={() => api?.scrollPrev()}>
                         <ChevronLeft />
                       </Button>
-                      {/* CORRIGIDO: sem onClick extra — o handleSubmit trata tudo */}
+                   
                       <Button
                         type="submit"
                         className="flex-1"

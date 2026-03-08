@@ -4,17 +4,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Register from "./pages/Register";
-import ProfileView from "./pages/ProfileView";
-import Profile from "./pages/Profile";
+import Register from "./pages/RegisterCreator";
+import Signup from "./pages/Signup";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import SubscriptionPage from "./pages/SubscriptionPage";
-import Chat from "./pages/Chat";
+
 import RecoverPassword from "./pages/RecoverPassword";
 import { AuthProvider } from "./context/AuthContext";
 import NotFound from "./pages/NotFound";
-import CreatorDashboard from "./pages/CreatorDashboard";
 
 const queryClient = new QueryClient();
 
@@ -27,14 +25,9 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/dashboard/profile-view" element={<ProfileView />} />
-            <Route
-              path="/dashboard/subscription"
-              element={<SubscriptionPage />}
-            />
-            <Route path="/dashboard/messages" element={<Chat />} />
             <Route path="/recover" element={<RecoverPassword />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="*" element={<NotFound />} />

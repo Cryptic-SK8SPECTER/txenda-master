@@ -9,6 +9,10 @@ import SuggestionsSection from "@/components/dashboard/SuggestionsSection";
 import Premium from "@/pages/Premium";
 import Nearby from "@/pages/Nearby";
 import Profile from "@/pages/Profile";
+import ProfileView from "@/pages/Details";
+import SubscriptionPage from "@/pages/SubscriptionPage";
+import Chat from "@/pages/Chat";
+import Details from "@/pages/Details";
 import Favorites from "@/pages/Favorites";
 import { Badge } from "@/components/ui/badge";
 import { Filter, ShieldCheck } from "lucide-react";
@@ -104,6 +108,7 @@ const Dashboard = () => {
               <Route path="favorites" element={<Favorites />} />
               <Route path="premium" element={<Premium />} />
               <Route path="nearby" element={<Nearby />} />
+              <Route path="details" element={<Details />} />
             </Routes>
           </main>
 

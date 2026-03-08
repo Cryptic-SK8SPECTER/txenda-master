@@ -120,7 +120,7 @@ const Login = () => {
             <p className="text-muted-foreground text-sm">
               Não tem conta?{" "}
               <Link
-                to="/register"
+                to="/signup"
                 className="text-primary hover:underline font-medium"
               >
                 Criar nova conta

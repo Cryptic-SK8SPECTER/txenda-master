@@ -59,29 +59,31 @@ const PersonCard = ({ person }: PersonCardProps) => {
             <span className="ml-auto">💰 Vende conteúdo</span>
           )}
         </div>
-        <div className="flex gap-1.5">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="flex-1 h-8 text-xs hover:bg-primary/10 hover:text-primary"
-          >
-            <Eye className="h-3.5 w-3.5 mr-1" /> Perfil
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 px-2 hover:bg-primary/10 hover:text-primary"
-          >
-            <Heart className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 px-2 hover:bg-primary/10 hover:text-primary"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <div className="flex items-center justify-between">
+  <Button
+    size="sm"
+    variant="ghost"
+    className="h-8 text-xs hover:bg-primary/10 hover:text-primary"
+  >
+    <Eye className="h-3.5 w-3.5 mr-1" /> Perfil
+  </Button>
+  <div className="flex gap-1.5">
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-8 px-2 hover:bg-primary/10 hover:text-primary"
+    >
+      <Heart className="h-3.5 w-3.5" />
+    </Button>
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-8 px-2 hover:bg-primary/10 hover:text-primary"
+    >
+      <MessageCircle className="h-3.5 w-3.5" />
+    </Button>
+  </div>
+</div>
       </div>
     </div>
   );

@@ -24,21 +24,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loadExtraData = async (userId: string) => {
     if (!userId || userId === 'undefined') return;
-
-    try {
-      const [profileRes, subRes] = await Promise.all([
-        customFetch.get(`profiles/${userId}`),
-        customFetch.get(`subscriptions/${userId}`)
-      ]);
-
-      // Ajuste aqui para garantir que pegamos o objeto correto da sua API
-      setProfile(profileRes.data.data.profile || profileRes.data.data);
-      setSubscription(subRes.data.data);
-    } catch (err) {
-      console.error("Erro ao carregar dados automáticos:", err);
-    }
+  
+    // Criamos um array de promessas para correr em paralelo
+    const profilePromise = customFetch.get(`profiles/${userId}`);
+    const subPromise = customFetch.get(`subscriptions/${userId}`);
+  
+    // Tratamos o Perfil: se falhar (ex: 404), o utilizador é apenas um "User comum"
+    const profileResult = await profilePromise
+      .then(res => res.data.data.profile || res.data.data)
+      .catch(() => null); // Retorna null se não houver perfil
+  
+    // Tratamos a Subscrição
+    const subResult = await subPromise
+      .then(res => res.data.data)
+      .catch(() => null);
+  
+    setProfile(profileResult);
+    setSubscription(subResult);
   };
-
+  
   useEffect(() => {
     const initializeAuth = async () => {
       const savedUser = localStorage.getItem('user');
