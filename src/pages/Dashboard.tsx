@@ -9,9 +9,6 @@ import SuggestionsSection from "@/components/dashboard/SuggestionsSection";
 import Premium from "@/pages/Premium";
 import Nearby from "@/pages/Nearby";
 import Profile from "@/pages/Profile";
-import ProfileView from "@/pages/Details";
-import SubscriptionPage from "@/pages/SubscriptionPage";
-import Chat from "@/pages/Chat";
 import Details from "@/pages/Details";
 import Favorites from "@/pages/Favorites";
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +16,17 @@ import { Filter, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterDialog from "@/components/dashboard/FilterDialog";
 import { useState } from "react";
-import { Routes, Route,useLocation,useSearchParams } from "react-router-dom";
+import { Routes, Route, useLocation, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+
 
 const DashboardHome = () => {
   const location = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchParams] = useSearchParams();
+  
+
   const { toast } = useToast();
 
 
@@ -56,7 +56,9 @@ const DashboardHome = () => {
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1">
               <ShieldCheck className="h-3 w-3" /> Perfil Verificado
             </Badge>
-            <Badge className="bg-secondary text-muted-foreground border-border">+18</Badge>
+            <Badge className="bg-secondary text-muted-foreground border-border">
+              +18
+            </Badge>
             <Button
               variant="outline"
               size="sm"
@@ -108,7 +110,7 @@ const Dashboard = () => {
               <Route path="favorites" element={<Favorites />} />
               <Route path="premium" element={<Premium />} />
               <Route path="nearby" element={<Nearby />} />
-              <Route path="details" element={<Details />} />
+              <Route path="details/:id" element={<Details />} />
             </Routes>
           </main>
 

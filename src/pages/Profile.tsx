@@ -83,13 +83,6 @@ const mockAnalytics = {
     ],
 };
 
-function calculateAge(dob: string) {
-    if (!dob) return null;
-    const birth = new Date(dob);
-    if (isNaN(birth.getTime())) return null;
-    return Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-}
-
 
 // Move this OUTSIDE and ABOVE your component function, at the top of the file
 export const visibilityLabels: Record<string, { label: string; color: string; icon: JSX.Element }> = {
@@ -99,7 +92,7 @@ export const visibilityLabels: Record<string, { label: string; color: string; ic
 };
 const ProfilePage = () => {
 
-    const { user, profile, setProfile, setUser, logout } = useAuth();
+    const { user, profile, setProfile, setUser, calculateAge } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [editData, setEditData] = useState({ ...profile, name: user?.name || "" });
 

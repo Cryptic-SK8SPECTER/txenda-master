@@ -3,7 +3,13 @@ import {
   DollarSign,
   Crown,
   Globe,
+  MapPin,
+  Diamond,
+  Target,
+  Sparkles,
+  Lock,
 } from "lucide-react";
+
 import * as z from "zod";
 
 
@@ -44,7 +50,6 @@ export const customFetch = axios.create({
   baseURL: productionUrl,
 });
 
-// INTERCEPTOR - Garante que o token seja lido do storage em cada request
 customFetch.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -88,3 +93,32 @@ export const schemasignup = z
     path: ["passwordConfirm"],
   });
 
+export const ITEMS_PER_PAGE = 12;
+
+export const benefits = [
+  {
+    icon: Lock,
+    title: "Segurança e privacidade",
+    desc: "Perfis verificados, localização protegida.",
+  },
+  {
+    icon: Diamond,
+    title: "Exclusividade",
+    desc: "Comunidade premium e comprometida.",
+  },
+  {
+    icon: MapPin,
+    title: "Geolocalização inteligente",
+    desc: "Encontre pessoas perto de você em tempo real.",
+  },
+  {
+    icon: Target,
+    title: "Conteúdo premium",
+    desc: "Fotos e vídeos seguros e exclusivos.",
+  },
+  {
+    icon: Sparkles,
+    title: "Experiências reais",
+    desc: "Conexões com intenções claras e consensuais.",
+  },
+];

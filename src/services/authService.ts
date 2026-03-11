@@ -1,53 +1,99 @@
-import axios from 'axios';
+import axios from "axios";
+import { io, Socket } from "socket.io-client";
+import { basicUrl } from "@/utils/index";
 
-const API_URL = 'http://localhost:9000/api/v1/users'; // Ajuste a porta se necessário
+const API_URL = "http://localhost:9000/api/v1/users";
+let socket: Socket | null = null;
 
 export const login = async (email: string, password: string) => {
-  const response = await axios.post(`${API_URL}/login`, {
-    email,
-    password,
-  }, {
-    withCredentials: true // Importante para enviar/receber cookies/JWT
+  const response = await axios.post(
+    `${API_URL}/login`,
+    { email, password },
+    { withCredentials: true },
+  );
+
+  // Verifique se o login foi bem sucedido e temos o token
+  if (response.data.token) {
+    localStorage.setItem("token", response.data.token);
+
+    // CORREÇÃO AQUI: Acesse o user de dentro de response.data.data
+    const user = response.data.data.user;
+    if (user && user._id) {
+      initializeSocket(user._id);
+    }
+  }
+
+  return response.data;
+};
+
+// Função para conectar e identificar o usuário no Socket
+export const initializeSocket = (userId: string) => {
+  if (socket) socket.disconnect();
+
+  socket = io(basicUrl, {
+    auth: { token: localStorage.getItem("token") },
+    transports: ["websocket"],
   });
 
-  if (response.data.token) {
-    localStorage.setItem('token', response.data.token);
-  }
-  
-  return response.data;
+  // Notifica o servidor que este usuário específico está online
+  socket.emit("setup", userId);
+
+  socket.on("connected", () => {
+    console.log("🔌 Conectado ao WebSocket e marcado como Online");
+  });
 };
 
 // Envia o e-mail de recuperação
 export const forgotPassword = async (email: string) => {
-    const response = await axios.post(`${API_URL}/forgotPassword`, { email });
-    return response.data;
-  };
-  
-  // Define a nova password usando o token vindo da URL
-  export const resetPassword = async (token: string, password: string, passwordConfirm: string) => {
-    const response = await axios.patch(`${API_URL}/resetPassword/${token}`, {
-      password,
-      passwordConfirm,
-    });
-    return response.data;
-  };
+  const response = await axios.post(`${API_URL}/forgotPassword`, { email });
+  return response.data;
+};
 
-  export const registerUser = async (formData: FormData) => {
-    const response = await axios.post(`${API_URL}/signup`, formData, {
-      withCredentials: true,
-    });
-    return response.data;
-  };
-  
-  export const logoutUser = async () => {
-    try {
-      // 1. Chama a API para limpar o cookie (importante se usar httpOnly)
-      await axios.get(`${API_URL}/logout`, { withCredentials: true });
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Erro ao fazer logout", error);
-      // Mesmo com erro na API, limpamos o local por segurança
-      localStorage.removeItem('token');
+// Define a nova password usando o token vindo da URL
+export const resetPassword = async (
+  token: string,
+  password: string,
+  passwordConfirm: string,
+) => {
+  const response = await axios.patch(`${API_URL}/resetPassword/${token}`, {
+    password,
+    passwordConfirm,
+  });
+  return response.data;
+};
+
+export const registerUser = async (formData: FormData) => {
+  const response = await axios.post(`${API_URL}/signup`, formData, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+export const logoutUser = async () => {
+  try {
+    await axios.get(`${API_URL}/logout`, { withCredentials: true });
+
+    // DESCONECTA O SOCKET NO LOGOUT
+    if (socket) {
+      socket.disconnect();
+      socket = null;
     }
-  };
+
+    localStorage.removeItem("token");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao fazer logout", error);
+    localStorage.removeItem("token");
+  }
+};
+
+export const disconnectSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+    console.log("🔌 Socket desconectado");
+  }
+};
+
+// No seu authService.ts adicione:
+export const getSocket = () => socket;

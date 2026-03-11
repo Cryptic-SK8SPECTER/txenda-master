@@ -2,52 +2,47 @@ import { MapPin, Heart, MessageCircle, Eye, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { userService } from "@/services/userService";
+import   { useToast } from "@/hooks/use-toast";
+import { basicUrl } from "@/utils/index";
+import { useAuth } from "@/context/AuthContext";
 
-const people = [
-  {
-    name: "Sofia",
-    age: 26,
-    distance: "2km",
-    img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=400&fit=crop",
-    verified: true,
-    online: true,
-  },
-  {
-    name: "Lucas",
-    age: 29,
-    distance: "3km",
-    img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
-    verified: true,
-    online: false,
-  },
-  {
-    name: "Marina",
-    age: 24,
-    distance: "5km",
-    img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop",
-    verified: true,
-    online: true,
-  },
-  {
-    name: "André",
-    age: 31,
-    distance: "7km",
-    img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=400&fit=crop",
-    verified: false,
-    online: false,
-  },
-  {
-    name: "Clara",
-    age: 27,
-    distance: "1km",
-    img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=400&fit=crop",
-    verified: true,
-    online: true,
-  },
-];
+
 
 export const NearbyPeopleSection = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+   const { calculateAge } = useAuth();
+
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fechUsers = async () => {
+      setLoading(true); // Ativa o skeleton
+      try {
+        const res = await userService.getAllUsers();
+
+        const users = res.data?.data;
+        setUsers(users)
+        console.log("Resposta USuarios  ", users);
+      } catch (err) {
+        console.error("Erro no fetch:", err);
+        toast({
+          title: "Erro ao carregar",
+          description: "Não foi possível carregar os conteúdos.",
+          variant: "destructive",
+        });
+      } finally {
+        // ESTA LINHA É OBRIGATÓRIA PARA O SKELETON SUMIR
+        setLoading(false);
+      }
+    };
+
+    fechUsers();
+  }, []);
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -66,14 +61,14 @@ export const NearbyPeopleSection = () => {
         </Button>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-        {people.map((p) => (
+        {users.map((p) => (
           <div
             key={p.name}
             className="relative min-w-[180px] w-[180px] rounded-xl overflow-hidden glass group flex-shrink-0"
           >
             <div className="relative h-52">
               <img
-                src={p.img}
+                src={`${basicUrl}img/users/${p.profile?.photo}`}
                 alt={p.name}
                 className="w-full h-full object-cover"
               />
@@ -81,7 +76,7 @@ export const NearbyPeopleSection = () => {
               {p.online && (
                 <span className="absolute top-2 right-2 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
               )}
-              {p.verified && (
+              {p.isVerified && (
                 <Badge className="absolute top-2 left-2 bg-primary/80 text-primary-foreground text-[10px] gap-1 px-1.5 py-0.5">
                   <ShieldCheck className="h-3 w-3" /> Verificado
                 </Badge>
@@ -90,7 +85,10 @@ export const NearbyPeopleSection = () => {
             <div className="p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-sm">
-                  {p.name}, {p.age}
+                  {p.name},{" "}
+                  {p.profile?.birthDate
+                    ? calculateAge(p?.profile?.birthDate)
+                    : " "}
                 </span>
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <MapPin className="h-3 w-3" /> {p.distance}
@@ -101,6 +99,7 @@ export const NearbyPeopleSection = () => {
                   size="sm"
                   variant="ghost"
                   className="flex-1 h-8 text-xs hover:bg-primary/10 hover:text-primary"
+                  onClick={() => navigate(`/dashboard/details/${p._id}`)}
                 >
                   <Eye className="h-3.5 w-3.5 mr-1" /> Perfil
                 </Button>

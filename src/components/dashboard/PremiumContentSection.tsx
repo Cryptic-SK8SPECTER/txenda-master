@@ -1,41 +1,66 @@
+import { useState, useEffect } from "react";
 import { Diamond, Lock, Play, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { contentService } from "@/services/contentService";
+import { ITEMS_PER_PAGE } from "@/utils/index";
+import { useToast } from "@/hooks/use-toast";
+import SkeletonGrid from "../content/SkeletonGrid";
+import ContentCard from "../content/ContentCard";
+import Pagination from "../content/Pagination";
+import { motion, AnimatePresence } from "framer-motion";
 
-const content = [
-  {
-    seller: "Sofia M.",
-    type: "Foto",
-    price: "MZN4,99",
-    img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=300&fit=crop",
-    count: 5,
-  },
-  {
-    seller: "Marina L.",
-    type: "Vídeo",
-    price: "MZN9,99",
-    img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop",
-    count: 1,
-  },
-  {
-    seller: "Clara R.",
-    type: "Foto",
-    price: "MZN3,49",
-    img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop",
-    count: 8,
-  },
-  {
-    seller: "Julia T.",
-    type: "Vídeo",
-    price: "MZN12,99",
-    img: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=300&fit=crop",
-    count: 3,
-  },
-];
 
 const PremiumContentSection = () => {
+  const [allContents, setAllContents] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const { toast } = useToast();
+
   const navigate = useNavigate();
+
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      setLoading(true); // Ativa o skeleton
+      try {
+        const res = await contentService.getAllContents(currentPage, ITEMS_PER_PAGE);
+
+        // LOG DE DEBUG - Verifique o que aparece no console agora
+
+        const contentArray = res.data?.data;
+        const total = res.total;
+
+        setAllContents(contentArray);
+        setTotalItems(total);
+
+      } catch (err) {
+        console.error("Erro no fetch:", err);
+        toast({
+          title: "Erro ao carregar",
+          description: "Não foi possível carregar os conteúdos.",
+          variant: "destructive"
+        });
+      } finally {
+        // ESTA LINHA É OBRIGATÓRIA PARA O SKELETON SUMIR
+        setLoading(false);
+      }
+    };
+
+    fetchFeed();
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+
+  };
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -53,45 +78,34 @@ const PremiumContentSection = () => {
           Explorar →
         </Button>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {content.map((c, i) => (
-          <div
-            key={i}
-            className="relative rounded-xl overflow-hidden glass group cursor-pointer"
-          >
-            <div className="relative aspect-square">
-              <img
-                src={c.img}
-                alt={c.seller}
-                className="w-full h-full object-cover blur-lg group-hover:blur-xl transition-all"
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`page-${currentPage}`}
+          // ... animações
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        >
+          {loading ? (
+            <SkeletonGrid count={8} />
+          ) : (
+            // MAPEIE allContents diretamente
+            allContents.map((content, i) => (
+              <ContentCard
+                key={content._id}
+                content={content}
+                index={i}
+                isLocked={false}
               />
-              <div className="absolute inset-0 bg-background/40 flex flex-col items-center justify-center gap-2">
-                <Lock className="h-8 w-8 text-primary" />
-                <span className="text-xs font-medium text-foreground">
-                  Conteúdo Exclusivo
-                </span>
-              </div>
-              <Badge className="absolute top-2 left-2 bg-secondary/80 text-foreground text-[10px] gap-1">
-                {c.type === "Vídeo" ? (
-                  <Play className="h-3 w-3" />
-                ) : (
-                  <Image className="h-3 w-3" />
-                )}
-                {c.type} • {c.count}
-              </Badge>
-            </div>
-            <div className="p-3 flex items-center justify-between">
-              <span className="text-sm font-medium">{c.seller}</span>
-              <Button
-                size="sm"
-                className="h-7 text-xs btn-gradient text-primary-foreground"
-              >
-                {c.price}
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
+            ))
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </section>
   );
 };

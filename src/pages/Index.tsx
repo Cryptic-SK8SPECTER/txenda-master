@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Shield, MapPin, Diamond, Target, Sparkles, Lock, Eye, Camera, Video, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Diamond, Target, Sparkles, Lock,  } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ContentCard from "@/components/content/ContentCard";
@@ -10,102 +10,10 @@ import { fadeUp } from "@/utils/index";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
 import Pagination from "@/components/content/Pagination";
+import { ITEMS_PER_PAGE,benefits } from "@/utils/index";
 
 
 
-const benefits = [
-  { icon: Lock, title: "Segurança e privacidade", desc: "Perfis verificados, localização protegida." },
-  { icon: Diamond, title: "Exclusividade", desc: "Comunidade premium e comprometida." },
-  { icon: MapPin, title: "Geolocalização inteligente", desc: "Encontre pessoas perto de você em tempo real." },
-  { icon: Target, title: "Conteúdo premium", desc: "Fotos e vídeos seguros e exclusivos." },
-  { icon: Sparkles, title: "Experiências reais", desc: "Conexões com intenções claras e consensuais." },
-];
-
-const allContents = [
-  {
-    id: 1, creator: "Mariana S.", description: "Ensaio exclusivo na praia", price: 29.90, views: 1240,
-    type: "photo" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop",
-  },
-  {
-    id: 2, creator: "Lucas M.", description: "Behind the scenes – sessão fitness", price: 19.90, views: 890,
-    type: "video" as const, visibility: "Pago individualmente",
-    preview: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=500&fit=crop",
-  },
-  {
-    id: 3, creator: "Ana R.", description: "Lifestyle & moda – coleção verão", price: 0, views: 3200,
-    type: "photo" as const, visibility: "Público",
-    preview: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=500&fit=crop",
-  },
-  {
-    id: 4, creator: "Pedro V.", description: "Vlog diário – rotina de criador", price: 14.90, views: 560,
-    type: "video" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=500&fit=crop",
-  },
-  {
-    id: 5, creator: "Sofia L.", description: "Dança contemporânea – performance", price: 24.90, views: 2100,
-    type: "video" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop",
-  },
-  {
-    id: 6, creator: "Rafael C.", description: "Fotografia artística urbana", price: 9.90, views: 750,
-    type: "photo" as const, visibility: "Pago individualmente",
-    preview: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop",
-  },
-  {
-    id: 7, creator: "Camila F.", description: "Sessão fotográfica ao pôr do sol", price: 34.90, views: 1850,
-    type: "photo" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop",
-  },
-  {
-    id: 8, creator: "Diego R.", description: "Treino funcional – série completa", price: 12.90, views: 430,
-    type: "video" as const, visibility: "Pago individualmente",
-    preview: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=500&fit=crop",
-  },
-  {
-    id: 9, creator: "Juliana P.", description: "Moda streetwear – lookbook", price: 0, views: 2750,
-    type: "photo" as const, visibility: "Público",
-    preview: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop",
-  },
-  {
-    id: 10, creator: "Thiago M.", description: "Vlog de viagem – Luanda", price: 19.90, views: 980,
-    type: "video" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=500&fit=crop",
-  },
-  {
-    id: 11, creator: "Beatriz S.", description: "Ensaio artístico minimalista", price: 39.90, views: 3100,
-    type: "photo" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop",
-  },
-  {
-    id: 12, creator: "André L.", description: "Cooking show – receitas premium", price: 8.90, views: 620,
-    type: "video" as const, visibility: "Pago individualmente",
-    preview: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop",
-  },
-  {
-    id: 13, creator: "Isabela N.", description: "Yoga ao ar livre – sessão guiada", price: 15.90, views: 1420,
-    type: "video" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=500&fit=crop",
-  },
-  {
-    id: 14, creator: "Gabriel T.", description: "Fotografia noturna – city lights", price: 22.90, views: 870,
-    type: "photo" as const, visibility: "Pago individualmente",
-    preview: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=400&h=500&fit=crop",
-  },
-  {
-    id: 15, creator: "Fernanda A.", description: "Behind the scenes – editorial", price: 27.90, views: 2300,
-    type: "photo" as const, visibility: "Exclusivo assinantes",
-    preview: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=500&fit=crop",
-  },
-  {
-    id: 16, creator: "Carlos H.", description: "Parkour urbano – highlights", price: 11.90, views: 540,
-    type: "video" as const, visibility: "Público",
-    preview: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&h=500&fit=crop",
-  },
-];
-
-const ITEMS_PER_PAGE = 12;
-const FREE_VISIBLE = 3;
 
 const Index = () => {
   const isSubscribed = false;
@@ -125,12 +33,10 @@ const Index = () => {
         const res = await contentService.getAllContents(currentPage, ITEMS_PER_PAGE);
 
         // LOG DE DEBUG - Verifique o que aparece no console agora
-        console.log("Resposta API:", res);
 
         const contentArray = res.data?.data;
         const total = res.total;
 
-        console.log("Resposta total:", total);
         setAllContents(contentArray);
         setTotalItems(total);
 

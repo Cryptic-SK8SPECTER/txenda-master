@@ -19,6 +19,7 @@ import FilterDialog from "@/components/dashboard/FilterDialog";
 import PersonCard, { Person } from "@/components/nearby/PersonCard";
 import MapView from "@/components/nearby/MapView";
 
+
 const samplePeople: Person[] = [
   {
     name: "Sofia",
