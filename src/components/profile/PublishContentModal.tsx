@@ -35,7 +35,7 @@ const publishSchema = z.object({
   description: z.string().min(1, "Descrição é obrigatória").max(500),
   type: z.enum(["photo", "video"]),
   price: z.number().min(0).optional(),
-  visibility: z.enum(["public", "exclusive", "paid"]),
+  visibility: z.enum(["Público", "Exclusivo assinantes", "Pago individualmente"]),
 });
 
 type PublishFormValues = z.infer<typeof publishSchema>;
@@ -58,7 +58,7 @@ const PublishContentModal = ({ open, onOpenChange, onPublish }: PublishContentMo
       description: "",
       type: "photo",
       price: 0,
-      visibility: "public",
+      visibility: "Público",
     },
   });
 
@@ -130,95 +130,153 @@ const PublishContentModal = ({ open, onOpenChange, onPublish }: PublishContentMo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border sm:max-w-lg overflow-y-auto max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="font-display">Publicar Novo Conteúdo</DialogTitle>
+          <DialogTitle className="font-display">
+            Publicar Novo Conteúdo
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
             {/* Área de Upload */}
             {!file ? (
               <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
                 onClick={() => document.getElementById("file-upload")?.click()}
               >
                 <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Arraste ou clique para enviar</p>
+                <p className="text-sm text-muted-foreground">
+                  Arraste ou clique para enviar
+                </p>
                 <input
                   id="file-upload"
                   type="file"
                   accept="image/*,video/*"
                   className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                  onChange={(e) =>
+                    e.target.files?.[0] && handleFile(e.target.files[0])
+                  }
                 />
               </div>
             ) : (
               <div className="relative rounded-lg overflow-hidden bg-secondary/50 aspect-video">
                 {file.type.startsWith("video/") ? (
-                  <video src={preview!} className="h-full w-full object-cover" />
+                  <video
+                    src={preview!}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  <img src={preview!} alt="Preview" className="h-full w-full object-cover" />
+                  <img
+                    src={preview!}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
                 )}
-                <button type="button" onClick={clearFile} className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 flex items-center justify-center text-white">
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 flex items-center justify-center text-white"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
 
-            <FormField control={form.control} name="description" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Descrição</FormLabel>
-                <FormControl><Textarea placeholder="Descreva o seu conteúdo..." rows={3} {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
             <FormField
               control={form.control}
-              name="price"
+              name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preço (MZN)</FormLabel>
+                  <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
+                    <Textarea
+                      placeholder="Descreva o seu conteúdo..."
+                      rows={3}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                     />
                   </FormControl>
                   <FormMessage />
-                  <p className="text-[10px] text-muted-foreground">
-                    Defina 0 para conteúdos gratuitos.
-                  </p>
                 </FormItem>
               )}
             />
 
-            <FormField control={form.control} name="visibility" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Visibilidade</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione a visibilidade" /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="public">Público</SelectItem>
-                    <SelectItem value="exclusive">Exclusivo assinantes</SelectItem>
-                    <SelectItem value="paid">Pago individualmente</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
+            <FormField
+              control={form.control}
+              name="visibility"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quem pode ver este conteúdo?</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Selecione a visibilidade" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Público">
+                        🔓 Público (Grátis para todos)
+                      </SelectItem>
+                      <SelectItem value="Exclusivo assinantes">
+                        ⭐ Exclusivo assinantes
+                      </SelectItem>
+                      <SelectItem value="Pago individualmente">
+                        💰 Pago individualmente (PPV)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            {visibility === "Pago individualmente" && (
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <FormLabel>Preço de Venda (MZN)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-[10px] text-muted-foreground">
+                      Este valor será cobrado por cada compra avulsa
+                      (Pay-per-view).
+                    </p>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancelar
+              </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : null}
                 {isSubmitting ? "A publicar..." : "Publicar"}
               </Button>
             </DialogFooter>

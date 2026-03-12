@@ -97,42 +97,6 @@ const DashboardHeader = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Messages */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative text-muted-foreground hover:text-foreground"
-            >
-              <MessageCircle className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold flex items-center justify-center text-primary-foreground">
-                5
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-64 bg-card border-border"
-          >
-            <DropdownMenuItem onClick={() => navigate("/dashboard/messages")}>
-              📩 Nova mensagem de Ana
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/messages")}>
-              📩 Mensagem de pedido
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/messages")}>
-              📩 Mensagem de suporte
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => navigate("/dashboard/messages")}
-              className="text-center text-xs text-muted-foreground"
-            >
-              Ver todas as conversas
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         {/* Profile */}
         <DropdownMenu>

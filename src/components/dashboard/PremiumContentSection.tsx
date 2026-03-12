@@ -94,6 +94,7 @@ const PremiumContentSection = () => {
                 content={content}
                 index={i}
                 isLocked={false}
+                route={"/dashboard/subscription"}
               />
             ))
           )}

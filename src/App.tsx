@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import SubscriptionPage from "./pages/SubscriptionPage";
 import Register from "./pages/RegisterCreator";
 import Signup from "./pages/Signup";
 
@@ -13,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import RecoverPassword from "./pages/RecoverPassword";
 import { AuthProvider } from "./context/AuthContext";
 import NotFound from "./pages/NotFound";
+import SuccessPage from "./pages/SuccessPage";
 
 const queryClient = new QueryClient();
 
@@ -25,10 +27,12 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/recover" element={<RecoverPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/payment-success" element={<SuccessPage />} />
             <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

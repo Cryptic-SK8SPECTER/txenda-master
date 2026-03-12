@@ -5,30 +5,30 @@ import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import NearbyPeopleSection from "@/components/dashboard/NearbyPeopleSection";
 import AvailableNowSection from "@/components/dashboard/AvailableNowSection";
 import PremiumContentSection from "@/components/dashboard/PremiumContentSection";
-import SuggestionsSection from "@/components/dashboard/SuggestionsSection";
+import ChatPage from "@/pages/ChatPage";
+import SubscriptionPage from "@/pages/SubscriptionPage";
 import Premium from "@/pages/Premium";
 import Nearby from "@/pages/Nearby";
 import Profile from "@/pages/Profile";
 import Details from "@/pages/Details";
 import Favorites from "@/pages/Favorites";
 import { Badge } from "@/components/ui/badge";
-import { Filter, ShieldCheck } from "lucide-react";
+import { Filter, ShieldCheck, MapPin, MapPinOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterDialog from "@/components/dashboard/FilterDialog";
 import { useState } from "react";
-import { Routes, Route, useLocation, useSearchParams } from "react-router-dom";
+import { Routes, Route, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-
+import { useGeolocation } from "@/hooks/use-geolocation";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 const DashboardHome = () => {
-  const location = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchParams] = useSearchParams();
-  
+  const { status } = useGeolocation();
 
   const { toast } = useToast();
-
 
   useEffect(() => {
     if (searchParams.get("status") === "success") {
@@ -74,9 +74,32 @@ const DashboardHome = () => {
       {/* Feed sections */}
       <div className="px-4 lg:px-6 py-6 space-y-8">
         <AvailableNowSection />
-        <NearbyPeopleSection />
+        {/* Geolocation-dependent section */}
+        {status === "requesting" && (
+          <div className="text-center py-8 glass rounded-xl animate-pulse">
+            <MapPin className="h-8 w-8 text-primary mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">
+              A solicitar a sua localização...
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              Permita o acesso para ver pessoas próximas.
+            </p>
+          </div>
+        )}
+        {status === "granted" && <NearbyPeopleSection />}
+        {status === "denied" && (
+          <div className="text-center py-8 glass rounded-xl">
+            <MapPinOff className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm font-medium">
+              Localização não disponível
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              Ative a localização nas configurações do navegador para ver
+              pessoas próximas.
+            </p>
+          </div>
+        )}
         <PremiumContentSection />
-        <SuggestionsSection />
 
         {/* Empty state fallback */}
         <div className="text-center py-8 glass rounded-xl">
@@ -96,28 +119,29 @@ const DashboardHome = () => {
 
 const Dashboard = () => {
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <DashboardSidebar />
-
-        <div className="flex-1 flex flex-col min-w-0">
-          <DashboardHeader />
-
-          <main className="flex-1 overflow-y-auto pb-20 md:pb-6">
-            <Routes>
-              <Route index element={<DashboardHome />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="favorites" element={<Favorites />} />
-              <Route path="premium" element={<Premium />} />
-              <Route path="nearby" element={<Nearby />} />
-              <Route path="details/:id" element={<Details />} />
-            </Routes>
-          </main>
-
-          <MobileBottomNav />
+    <ProtectedRoute>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <DashboardSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <DashboardHeader />
+            <main className="flex-1 overflow-y-auto pb-20 md:pb-6">
+              <Routes>
+                <Route index element={<DashboardHome />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="favorites" element={<Favorites />} />
+                <Route path="premium" element={<Premium />} />
+                <Route path="nearby" element={<Nearby />} />
+                <Route path="details/:id" element={<Details />} />
+                <Route path="chat/:id" element={<ChatPage />} />
+                <Route path="subscription" element={<SubscriptionPage />} />
+              </Routes>
+            </main>
+            <MobileBottomNav />
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </ProtectedRoute>
   );
 };
 

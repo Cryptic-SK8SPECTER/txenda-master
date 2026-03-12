@@ -73,7 +73,13 @@ const Index = () => {
           style={{ backgroundImage: `url(${heroBg})` }}
         />
         <div className="absolute inset-0 bg-background/70" />
-        <div className="absolute inset-0" style={{ background: "var(--gradient-hero)", mixBlendMode: "multiply" }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "var(--gradient-hero)",
+            mixBlendMode: "multiply",
+          }}
+        />
 
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-12 py-5">
           <span className="font-display text-xl md:text-2xl font-bold text-foreground tracking-wider uppercase">
@@ -113,8 +119,8 @@ const Index = () => {
             className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
           >
             Conexões reais.{" "}
-            <span className="text-gradient">Pessoas reais.</span>{" "}
-            Intenções claras.
+            <span className="text-gradient">Pessoas reais.</span> Intenções
+            claras.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -130,7 +136,12 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Button variant="hero" size="lg" className="text-lg px-10 py-6 rounded-full" asChild>
+            <Button
+              variant="hero"
+              size="lg"
+              className="text-lg px-10 py-6 rounded-full"
+              asChild
+            >
               <Link to="/signup">Crie sua conta agora</Link>
             </Button>
           </motion.div>
@@ -138,8 +149,6 @@ const Index = () => {
 
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
-
-
 
       {/* Conteúdos de Criadores */}
       <section id="conteudos" className="py-24 bg-background">
@@ -150,14 +159,27 @@ const Index = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <motion.p variants={fadeUp} custom={0} className="text-primary tracking-[0.3em] uppercase text-sm mb-4">
+            <motion.p
+              variants={fadeUp}
+              custom={0}
+              className="text-primary tracking-[0.3em] uppercase text-sm mb-4"
+            >
               Descubra
             </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-display text-3xl md:text-5xl font-bold mb-4">
+            <motion.h2
+              variants={fadeUp}
+              custom={1}
+              className="font-display text-3xl md:text-5xl font-bold mb-4"
+            >
               Conteúdos de Criadores
             </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-muted-foreground max-w-2xl mx-auto">
-              Explore conteúdos exclusivos publicados por criadores verificados da nossa comunidade.
+            <motion.p
+              variants={fadeUp}
+              custom={2}
+              className="text-muted-foreground max-w-2xl mx-auto"
+            >
+              Explore conteúdos exclusivos publicados por criadores verificados
+              da nossa comunidade.
             </motion.p>
           </motion.div>
 
@@ -179,6 +201,7 @@ const Index = () => {
                     content={content}
                     index={i}
                     isLocked={false}
+                    route={"/subscription"}
                   />
                 ))
               )}
@@ -211,9 +234,15 @@ const Index = () => {
                   Quer ver todos os conteúdos?
                 </h3>
                 <p className="text-muted-foreground max-w-lg mx-auto mb-8 text-base md:text-lg">
-                  Acesse conteúdos exclusivos de criadores e desbloqueie experiências únicas.
+                  Acesse conteúdos exclusivos de criadores e desbloqueie
+                  experiências únicas.
                 </p>
-                <Button variant="hero" size="lg" className="text-lg px-10 py-6 rounded-full" asChild>
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="text-lg px-10 py-6 rounded-full"
+                  asChild
+                >
                   <Link to="/subscription">Ativar Subscrição</Link>
                 </Button>
               </div>
@@ -222,9 +251,12 @@ const Index = () => {
         </div>
       </section>
 
-
       {/* Por que escolher */}
-      <section id="vantagens" className="py-24" style={{ background: "var(--gradient-dark)" }}>
+      <section
+        id="vantagens"
+        className="py-24"
+        style={{ background: "var(--gradient-dark)" }}
+      >
         <div className="container mx-auto px-4 max-w-6xl">
           <motion.div
             initial="hidden"
@@ -232,10 +264,18 @@ const Index = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <motion.p variants={fadeUp} custom={0} className="text-primary tracking-[0.3em] uppercase text-sm mb-4">
+            <motion.p
+              variants={fadeUp}
+              custom={0}
+              className="text-primary tracking-[0.3em] uppercase text-sm mb-4"
+            >
               Vantagens
             </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-display text-3xl md:text-5xl font-bold">
+            <motion.h2
+              variants={fadeUp}
+              custom={1}
+              className="font-display text-3xl md:text-5xl font-bold"
+            >
               Por que escolher nossa plataforma
             </motion.h2>
           </motion.div>
@@ -254,7 +294,9 @@ const Index = () => {
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-5">
                   <b.icon className="w-7 h-7 text-primary" />
                 </div>
-                <h3 className="font-display text-lg font-semibold mb-2">{b.title}</h3>
+                <h3 className="font-display text-lg font-semibold mb-2">
+                  {b.title}
+                </h3>
                 <p className="text-muted-foreground text-sm">{b.desc}</p>
               </motion.div>
             ))}
@@ -268,7 +310,12 @@ const Index = () => {
             custom={0}
             className="text-center mt-14"
           >
-            <Button variant="cta" size="lg" className="text-lg px-10 py-6" asChild>
+            <Button
+              variant="cta"
+              size="lg"
+              className="text-lg px-10 py-6"
+              asChild
+            >
               <Link to="/signup">Assine e tenha acesso completo</Link>
             </Button>
           </motion.div>
@@ -277,25 +324,44 @@ const Index = () => {
 
       {/* Mensagem Final */}
       <section className="relative py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url(${heroBg})` }} />
-        <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-20"
+          style={{ backgroundImage: `url(${heroBg})` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: "var(--gradient-hero)" }}
+        />
         <div className="relative z-10 container mx-auto px-4 max-w-3xl text-center">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <motion.h2 variants={fadeUp} custom={0} className="font-display text-3xl md:text-5xl font-bold mb-8 leading-tight">
+            <motion.h2
+              variants={fadeUp}
+              custom={0}
+              className="font-display text-3xl md:text-5xl font-bold mb-8 leading-tight"
+            >
               Entre em um mundo de conexões adultas{" "}
               <span className="text-gradient">premium</span>.
             </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-lg md:text-xl text-foreground/80 mb-10 leading-relaxed">
+            <motion.p
+              variants={fadeUp}
+              custom={1}
+              className="text-lg md:text-xl text-foreground/80 mb-10 leading-relaxed"
+            >
               Descubra encontros e conteúdos exclusivos, em um ambiente seguro e
               discreto. Aqui, você encontra pessoas reais e experiências que
               realmente importam.
             </motion.p>
             <motion.div variants={fadeUp} custom={2}>
-              <Button variant="hero" size="lg" className="text-lg px-10 py-6 rounded-full" asChild>
+              <Button
+                variant="hero"
+                size="lg"
+                className="text-lg px-10 py-6 rounded-full"
+                asChild
+              >
                 <Link to="/signup">Comece agora – é rápido e seguro</Link>
               </Button>
             </motion.div>

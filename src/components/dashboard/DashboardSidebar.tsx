@@ -24,7 +24,6 @@ import logo from "@/assets/txenda.png";
 const menuItems = [
   { title: "Início", url: "/dashboard", icon: Home },
   { title: "Pessoas Próximas", url: "/dashboard/nearby", icon: MapPin },
-  { title: "Mensagens", url: "/dashboard/messages", icon: MessageCircle },
   { title: "Conteúdo Premium", url: "/dashboard/premium", icon: Diamond },
   { title: "Favoritos", url: "/dashboard/favorites", icon: Star },
   { title: "Subscrição", url: "/dashboard/subscription", icon: CreditCard },

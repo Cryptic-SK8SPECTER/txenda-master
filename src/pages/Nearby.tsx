@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MapPin,
   Bell,
   Filter,
   List as ListIcon,
   Map as MapIcon,
+  Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,91 +18,103 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import FilterDialog from "@/components/dashboard/FilterDialog";
-import PersonCard, { Person } from "@/components/nearby/PersonCard";
+import PersonCard from "@/components/nearby/PersonCard";
 import MapView from "@/components/nearby/MapView";
 
-
-const samplePeople: Person[] = [
-  {
-    name: "Sofia",
-    age: 26,
-    distance: "2km",
-    img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=400&fit=crop",
-    verified: true,
-    online: true,
-    availableToday: true,
-  },
-  {
-    name: "Lucas",
-    age: 29,
-    distance: "3km",
-    img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
-    verified: true,
-  },
-  {
-    name: "Marina",
-    age: 24,
-    distance: "5km",
-    img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop",
-    verified: true,
-    online: true,
-    vip: true,
-  },
-  {
-    name: "André",
-    age: 31,
-    distance: "7km",
-    img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=400&fit=crop",
-    sellsContent: true,
-  },
-  {
-    name: "Clara",
-    age: 27,
-    distance: "1km",
-    img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=400&fit=crop",
-    verified: true,
-    online: true,
-    availableToday: true,
-    sellsContent: true,
-  },
-];
+// Hooks e Serviços Reais
+import { locationService } from "@/services/locationService";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Nearby = () => {
+  // --- Estados de UI ---
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [plan, setPlan] = useState<"standard" | "premium" | "vip">("standard");
   const [sortOption, setSortOption] = useState("mais_proximos");
+  const [plan] = useState<"standard" | "premium" | "vip">("standard");
 
-  const filtered = samplePeople; // placeholder: in real use apply filters/sort
+  // --- Estados de Dados ---
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const onlineCount = samplePeople.filter((p) => p.online).length;
-  const newCount = 3;
+  // --- Hooks ---
+  const { location, status } = useGeolocation();
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
 
-  const limitReached = plan === "standard" && filtered.length > 5;
+  // --- Efeito de Busca de Dados ---
+  useEffect(() => {
+    const fetchNearby = async () => {
+      // Só busca se tiver permissão de GPS e as coordenadas
+      if (status === "granted" && location) {
+        setLoading(true);
+        try {
+          const res = await locationService.getNearbyUsers(
+            50, // Raio de 50km
+            location.lat,
+            location.lng,
+            10, // Limite de 10 por página
+            page,
+          );
+
+          const rawData = res.data?.data || [];
+
+          // 1. Filtro de Segurança: Remove o próprio usuário da lista
+          const currentUserId = String(currentUser?._id);
+          const filteredData = rawData.filter(
+            (loc: any) => String(loc.user?._id) !== currentUserId,
+          );
+
+          // 2. Formatação para o PersonCard
+          const formattedUsers = filteredData.map((loc: any) => ({
+            ...loc.user,
+            distance: loc.distance ? `${loc.distance.toFixed(1)} km` : "Perto",
+            isOnline: loc.user?.isOnline || false,
+          }));
+
+          // 3. Lógica de Paginação
+          // Se for página 1, substitui. Se for > 1, adiciona ao final (Load More).
+          setUsers((prev) =>
+            page === 1 ? formattedUsers : [...prev, ...formattedUsers],
+          );
+
+          // 4. Verifica se há mais para carregar (se veio menos que o limite, acabou)
+          setHasMore(rawData.length === 10);
+        } catch (err) {
+          console.error("Erro ao carregar pessoas próximas:", err);
+          toast({
+            title: "Erro",
+            description: "Não foi possível carregar as pessoas próximas.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      } else if (status === "denied") {
+        setLoading(false);
+      }
+    };
+
+    fetchNearby();
+  }, [location, status, page, currentUser?._id]);
+
+  // Contadores visuais (Baseados no que foi carregado)
+  const onlineCount = users.filter((u) => u.isOnline).length;
+  
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {/* top header */}
+    <div className="min-h-screen flex flex-col bg-background text-foreground pb-20">
+      {/* Header Fixo */}
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/90 backdrop-blur-md px-4 py-2">
         <div className="flex items-center gap-1">
           <MapPin className="h-5 w-5 text-primary" />
-          <span>Lisboa, 3 km de você</span>
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-          </Button>
+          {/* <span className="text-sm font-medium">Lisboa, Portugal</span> */}
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative text-muted-foreground hover:text-foreground"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold flex items-center justify-center text-primary-foreground">
-              2
-            </span>
-          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -111,82 +125,135 @@ const Nearby = () => {
         </div>
       </header>
 
-      {/* psychological indicators */}
-      <div className="px-4 py-2 text-xs text-muted-foreground">
-        {onlineCount} pessoas online agora perto de você • {newCount} perfis
-        adicionados nas últimas 2 horas
+      {/* Indicadores Psicológicos */}
+      <div className="px-4 py-2 text-[11px] text-muted-foreground bg-muted/20">
+        {onlineCount > 0
+          ? `${onlineCount} pessoas online agora perto de você`
+          : "Buscando pessoas ativas..."}
       </div>
 
-      {/* view toggle & sort */}
-      <div className="flex items-center px-4 py-2 gap-2">
-        <Button
-          variant={viewMode === "list" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => setViewMode("list")}
-          className="flex items-center gap-1"
-        >
-          <ListIcon className="h-4 w-4" /> Lista
-        </Button>
-        <Button
-          variant={viewMode === "map" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => setViewMode("map")}
-          className="flex items-center gap-1"
-        >
-          <MapIcon className="h-4 w-4" /> Mapa
-        </Button>
+      {/* Controles de Visão e Ordenação */}
+      <div className="flex items-center px-4 py-2 gap-2 border-b border-border/50">
+        <div className="flex bg-secondary/50 p-1 rounded-lg">
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="h-8 text-xs"
+          >
+            <ListIcon className="h-3.5 w-3.5 mr-1" /> Lista
+          </Button>
+          <Button
+            variant={viewMode === "map" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("map")}
+            className="h-8 text-xs"
+          >
+            <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+          </Button>
+        </div>
 
-        <div className="ml-auto w-40">
-          <Select value={sortOption} onValueChange={(v) => setSortOption(v)}>
-            <SelectTrigger className="h-8 text-xs">
+        <div className="ml-auto w-36">
+          <Select value={sortOption} onValueChange={setSortOption}>
+            <SelectTrigger className="h-8 text-[11px]">
               <SelectValue placeholder="Ordenar" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="mais_proximos">Mais próximos</SelectItem>
               <SelectItem value="online_agora">Online agora</SelectItem>
-              <SelectItem value="melhor_avaliacao">Melhor avaliação</SelectItem>
-              <SelectItem value="mais_populares">Mais populares</SelectItem>
               <SelectItem value="novos_perfis">Novos perfis</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* main area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {viewMode === "map" ? (
+      {/* Área Principal */}
+      <main className="flex-1 flex flex-col">
+        {status === "prompt" || (loading && page === 1) ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Localizando pessoas...
+            </p>
+          </div>
+        ) : viewMode === "map" ? (
+          // Visão de Mapa (Bloqueio de Plano)
           plan === "standard" ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <p className="mb-4">
-                Modo mapa disponível apenas para planos Premium 🎯
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/10">
+              <div className="bg-primary/10 p-4 rounded-full mb-4">
+                <MapIcon className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-2">Modo Mapa Indisponível</h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+                Atualize para o plano Premium para ver exatamente onde as
+                pessoas estão.
               </p>
-              <Button>Atualizar plano</Button>
+              <Button>Ver Planos</Button>
             </div>
           ) : (
-            <div className="flex-1 p-4">
-              <MapView />
+            <div className="flex-1 relative">
+              <MapView users={users} />
             </div>
           )
         ) : (
-          <div className="flex-1 overflow-y-auto px-4 pb-20">
+          // Visão de Lista
+          <div className="flex-1 overflow-y-auto px-4 py-4">
             {plan === "standard" && (
-              <div className="mb-3 text-xs text-muted-foreground">
-                Planos Standard veem até 5 perfis por dia.{" "}
-                <Button variant="link" className="text-primary text-xs">
-                  Atualize
+              <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/10 flex items-center justify-between">
+                <p className="text-[11px] text-muted-foreground">
+                  No plano <strong>Standard</strong>, mostramos resultados
+                  limitados.
+                </p>
+                <Button
+                  variant="link"
+                  className="text-primary text-[11px] h-auto p-0"
+                >
+                  Upgrade
                 </Button>
               </div>
             )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(plan === "standard" ? filtered.slice(0, 5) : filtered).map(
-                (p) => (
-                  <PersonCard key={p.name} person={p} />
-                ),
-              )}
+              {users.map((user) => (
+                <PersonCard key={user._id} person={user} />
+              ))}
             </div>
+
+            {/* Paginação Estilo Load More */}
+            {users.length > 0 && (
+              <div className="mt-8 flex justify-center">
+                {hasMore ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage((prev) => prev + 1)}
+                    disabled={loading}
+                    className="min-w-[200px]"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      "Carregar mais pessoas"
+                    )}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Você chegou ao fim da lista nesta região.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {users.length === 0 && !loading && (
+              <div className="text-center py-20">
+                <MapPin className="h-10 w-10 text-muted/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Não encontramos ninguém num raio de 50km.
+                </p>
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </main>
 
       <FilterDialog open={filtersOpen} onOpenChange={setFiltersOpen} />
     </div>
