@@ -1,10 +1,9 @@
 import {
   Home,
   MapPin,
-  MessageCircle,
   Diamond,
   Star,
-  User,
+  Bell,
   CreditCard,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -26,6 +25,7 @@ const menuItems = [
   { title: "Pessoas Próximas", url: "/dashboard/nearby", icon: MapPin },
   { title: "Conteúdo Premium", url: "/dashboard/premium", icon: Diamond },
   { title: "Favoritos", url: "/dashboard/favorites", icon: Star },
+  { title: "Notificações", url: "/dashboard/notifications", icon: Bell },
   { title: "Subscrição", url: "/dashboard/subscription", icon: CreditCard },
 ];
 

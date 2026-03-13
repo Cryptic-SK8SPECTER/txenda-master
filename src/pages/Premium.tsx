@@ -3,10 +3,18 @@ import { Diamond, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PremiumContentSection from "@/components/dashboard/PremiumContentSection";
 import FilterDialog from "@/components/dashboard/FilterDialog";
+import { type FilterState, defaultFilters } from "@/types/filters";
+import { useAuth } from "@/context/AuthContext";
 
 const Premium = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [plan, setPlan] = useState<"standard" | "premium" | "vip">("standard");
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const { planTier, subscription } = useAuth();
+
+  const hasPremiumAccess =
+    subscription &&
+    subscription.status === "active" &&
+    new Date(subscription.endDate) > new Date();
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -25,20 +33,27 @@ const Premium = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        {plan === "standard" ? (
+        {!hasPremiumAccess ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="mb-4">
-              Acesso completo ao conteúdo está disponível apenas em planos
-              Premium.
+              Acesso completo ao conteúdo está disponível apenas para
+              subscritores com plano ativo.
             </p>
-            <Button>Atualizar plano</Button>
+            <Button asChild>
+              <a href="/dashboard/subscription">Atualizar plano</a>
+            </Button>
           </div>
         ) : (
-          <PremiumContentSection />
+          <PremiumContentSection filters={filters} />
         )}
       </div>
 
-      <FilterDialog open={filtersOpen} onOpenChange={setFiltersOpen} />
+      <FilterDialog 
+        open={filtersOpen} 
+        onOpenChange={setFiltersOpen} 
+        filters={filters}
+        onApplyFilters={(newFilters) => setFilters(newFilters)}
+      />
     </div>
   );
 };

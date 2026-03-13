@@ -15,6 +15,7 @@ import { useState } from "react";
 import { favoriteService } from "@/services/favoriteService";
 import { useToast } from "@/hooks/use-toast";
 export interface Person {
+  _id: string;
   name: string;
   age: number;
   distance: string;
@@ -24,13 +25,20 @@ export interface Person {
   availableToday?: boolean;
   vip?: boolean;
   sellsContent?: boolean;
+  isFavorited?: boolean;
+  favoriteId?: string | null;
+  profile?: {
+    photo?: string;
+    birthDate?: string;
+  };
 }
 
 interface PersonCardProps {
   person: Person;
+  onRouteSelect?: (person: Person) => void;
 }
 
-const PersonCard = ({ person }: PersonCardProps) => {
+const PersonCard = ({ person, onRouteSelect }: PersonCardProps) => {
   const navigate = useNavigate();
   const { calculateAge, user: currentUser } = useAuth();
   const { toast } = useToast();
@@ -62,11 +70,7 @@ const PersonCard = ({ person }: PersonCardProps) => {
         toast({ description: "Removido dos favoritos." });
       } else {
         // Adicionar
-        const res = await favoriteService.addToFavorites({
-          targetId: person._id,
-          targetType: "User", // ou 'Creator' conforme o seu modelo
-          category: "Geral",
-        });
+        const res = await favoriteService.addToFavorites(person._id);
 
         setIsFavorited(true);
         setFavId(res.data.data._id);
@@ -114,9 +118,21 @@ const PersonCard = ({ person }: PersonCardProps) => {
               ? calculateAge(person?.profile?.birthDate)
               : ""}
           </span>
-          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-3 w-3" /> {person.distance}
-          </span>
+          {onRouteSelect ? (
+            <button 
+               className="text-[11px] text-primary hover:text-primary/80 font-medium flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full transition-colors"
+               onClick={(e) => {
+                 e.stopPropagation();
+                 onRouteSelect(person);
+               }}
+            >
+              <MapPin className="h-3 w-3" /> Ver Rota
+            </button>
+          ) : (
+             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+               <MapPin className="h-3 w-3" /> {person.distance}
+             </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">

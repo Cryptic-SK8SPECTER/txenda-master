@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Diamond, Lock, Play, Image } from "lucide-react";
+import { Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { contentService } from "@/services/contentService";
 import { ITEMS_PER_PAGE } from "@/utils/index";
@@ -10,103 +9,141 @@ import SkeletonGrid from "../content/SkeletonGrid";
 import ContentCard from "../content/ContentCard";
 import Pagination from "../content/Pagination";
 import { motion, AnimatePresence } from "framer-motion";
+import { type FilterState } from "@/types/filters";
 
+// 1. Adicionamos a interface para receber os filtros do Dashboard
+interface PremiumContentSectionProps {
+  filters: FilterState;
+}
 
-const PremiumContentSection = () => {
-  const [allContents, setAllContents] = useState([]);
+const PremiumContentSection = ({ filters }: PremiumContentSectionProps) => {
+  const [allContents, setAllContents] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
   const { toast } = useToast();
-
   const navigate = useNavigate();
 
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  // 2. Resetar para a página 1 sempre que os filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   useEffect(() => {
     const fetchFeed = async () => {
-      setLoading(true); // Ativa o skeleton
+      setLoading(true);
       try {
-        const res = await contentService.getAllContents(currentPage, ITEMS_PER_PAGE);
+        const res = await contentService.getAllContents(
+          currentPage,
+          ITEMS_PER_PAGE,
+          filters
+        );
 
-        // LOG DE DEBUG - Verifique o que aparece no console agora
-
-        const contentArray = res.data?.data;
-        const total = res.total;
-
-        setAllContents(contentArray);
+        const rawData = res.data?.data || [];
+        const total = res.total || 0;
+        
+        setAllContents(rawData);
         setTotalItems(total);
-
       } catch (err) {
         console.error("Erro no fetch:", err);
         toast({
           title: "Erro ao carregar",
-          description: "Não foi possível carregar os conteúdos.",
-          variant: "destructive"
+          description: "Não foi possível carregar os conteúdos premium.",
+          variant: "destructive",
         });
       } finally {
-        // ESTA LINHA É OBRIGATÓRIA PARA O SKELETON SUMIR
         setLoading(false);
       }
     };
 
     fetchFeed();
-  }, [currentPage]);
+  }, [currentPage, filters, toast]);
+
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
-
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-
+    // Scroll suave para o topo da seção ao mudar de página
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Diamond className="h-5 w-5 text-primary" />
-          <h2 className="font-display text-xl font-semibold">
-            Conteúdo Premium
-          </h2>
+    <section className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Diamond className="h-5 w-5 text-primary fill-primary/20" />
+            <h2 className="font-display text-xl font-semibold">
+              Conteúdo Premium
+            </h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Acesso exclusivo aos criadores mais populares
+          </p>
         </div>
+
         <Button
-          variant="link"
-          className="text-primary text-sm"
+          variant="outline"
+          size="sm"
+          className="text-xs border-primary/20 hover:bg-primary/10 text-primary"
           onClick={() => navigate("/dashboard/premium")}
         >
-          Explorar →
+          Ver Catálogo Completo
         </Button>
       </div>
+
       <AnimatePresence mode="wait">
         <motion.div
-          key={`page-${currentPage}`}
-          // ... animações
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          key={`content-grid-${currentPage}-${JSON.stringify(filters)}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+          className="min-h-[400px]"
         >
           {loading ? (
             <SkeletonGrid count={8} />
+          ) : allContents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {allContents.map((content, i) => (
+                <ContentCard
+                  key={content._id}
+                  content={content}
+                  index={i}
+                  route={"/dashboard/subscription"}
+                />
+              ))}
+            </div>
           ) : (
-            // MAPEIE allContents diretamente
-            allContents.map((content, i) => (
-              <ContentCard
-                key={content._id}
-                content={content}
-                index={i}
-                isLocked={false}
-                route={"/dashboard/subscription"}
-              />
-            ))
+            <div className="flex flex-col items-center justify-center py-20 bg-secondary/10 rounded-2xl border-2 border-dashed border-border">
+              <Diamond className="h-10 w-10 text-muted-foreground/20 mb-3" />
+              <p className="text-muted-foreground text-sm font-medium">
+                Nenhum conteúdo premium encontrado para estes filtros.
+              </p>
+              <Button
+                variant="link"
+                onClick={() => navigate(0)} // Recarrega a página ou limpa filtros
+                className="text-primary text-xs mt-2"
+              >
+                Limpar todos os filtros
+              </Button>
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
 
-      {/* Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
+      {/* Pagination - Só mostra se houver mais de uma página */}
+      {totalPages > 1 && (
+        <div className="pt-4 border-t border-border/50">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
+      )}
     </section>
   );
 };

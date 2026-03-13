@@ -7,32 +7,25 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
 
-  // 1. Enquanto o AuthContext verifica a sessão (ex: validando token no refresh)
-  if (loading) {
+  // Se o context ainda está a verificar o token no servidor, mostra um ecrã de espera
+  if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground animate-pulse">
-            Verificando autenticação...
-          </p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
       </div>
     );
   }
 
-  // 2. Se a verificação terminou e não existe usuário logado
+  // Só depois de terminar o loading é que verificamos se o user existe
   if (!user) {
-    // Redireciona para o login, mas guarda a página que o usuário tentou acessar
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // 3. Se estiver logado, renderiza os componentes filhos (o Dashboard)
   return <>{children}</>;
 };
+
 
 export default ProtectedRoute;

@@ -65,7 +65,7 @@ import { basicUrl } from "@/utils/index";
 import { profileService } from "@/services/profileService";
 import { userService } from "@/services/userService";
 import { contentService } from "@/services/contentService";
-
+import { analyticsService } from "@/services/analyticsService";
 
 const mockAnalytics = {
     totalViews: 22130,
@@ -107,20 +107,48 @@ const ProfilePage = () => {
     const [showDeleteContentModal, setShowDeleteContentModal] = useState(false);
     const [contentToDelete, setContentToDelete] = useState<any>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    
+    // Estados de Paginação
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingContents, setLoadingContents] = useState(false);
+    
+    const [creatorStats, setCreatorStats] = useState({
+        totalSubscribers: 0,
+        dailyData: mockAnalytics.dailyData
+    });
 
-    //  Carregar conteúdos ao iniciar
+    //  Carregar conteúdos e estatísticas ao iniciar
     useEffect(() => {
-        const fetchMyContents = async () => {
+        const fetchMyData = async () => {
+            setLoadingContents(true);
             try {
-                const res = await contentService.getMyContents();
-
-                setContents(res.data.data);
+                const res = await contentService.getMyContents(page, 6); // Limite de 6 por carregamento
+                const fetchedContents = res.data.data;
+                
+                setContents(prev => page === 1 ? fetchedContents : [...prev, ...fetchedContents]);
+                setHasMore(fetchedContents.length === 6);
             } catch (err) {
                 console.error("Erro ao carregar conteúdos", err);
+            } finally {
+                setLoadingContents(false);
+            }
+
+            // Apenas puxar as stats na montagem inicial (página 1) para não recarregar no Load More
+            if (user?.role === 'creator' && page === 1) {
+                try {
+                    const statsRes = await analyticsService.getCreatorStats();
+                    setCreatorStats({
+                        totalSubscribers: statsRes.data.totalSubscribers,
+                        dailyData: statsRes.data.dailyData
+                    });
+                } catch (err) {
+                    console.error("Erro ao carregar estatísticas do criador", err);
+                }
             }
         };
-        if (user) fetchMyContents();
-    }, [user]);
+        if (user) fetchMyData();
+    }, [user, page]);
 
     useEffect(() => {
         // 1. Verificamos se o perfil e o user já foram carregados pelo AuthContext
@@ -139,6 +167,11 @@ const ProfilePage = () => {
             });
         }
     }, [profile, user]); // O efeito corre sempre que o profile ou user mudarem
+
+    // --- Estatísticas Dinâmicas do Criador ---
+    const totalContentViews = contents.reduce((acc, content) => acc + (content.views || 0), 0);
+    const totalContentSales = contents.reduce((acc, content) => acc + (content.sales || 0), 0);
+    const totalContentRevenue = contents.reduce((acc, content) => acc + ((content.sales || 0) * (content.price || 0)), 0);
 
 
     // No Profile.tsx, logo abaixo do useAuth
@@ -415,6 +448,7 @@ const ProfilePage = () => {
                                                     preload="metadata"
                                                     muted
                                                     loop
+                                                    autoPlay
                                                     playsInline
                                                 />
                                             ) : (
@@ -471,6 +505,30 @@ const ProfilePage = () => {
                                     );
                                 })}
                             </div>
+
+                            {/* Paginação Estilo Load More */}
+                            {contents.length > 0 && (
+                                <div className="mt-8 flex justify-center">
+                                    {hasMore ? (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setPage(prev => prev + 1)}
+                                            disabled={loadingContents}
+                                            className="min-w-[200px]"
+                                        >
+                                            {loadingContents ? (
+                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                            ) : null}
+                                            {loadingContents ? "A carregar..." : "Carregar mais conteúdos"}
+                                        </Button>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground italic">
+                                            Não existem mais conteúdos a apresentar.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                         </CardContent>
                     </Card>
                 </motion.div>
@@ -486,10 +544,10 @@ const ProfilePage = () => {
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 {[
-                                    { icon: <Eye className="h-5 w-5" />, label: "Visualizações", value: mockAnalytics.totalViews.toLocaleString(), color: "text-blue-400" },
-                                    { icon: <MousePointerClick className="h-5 w-5" />, label: "Cliques", value: mockAnalytics.totalClicks.toLocaleString(), color: "text-green-400" },
-                                    { icon: <TrendingUp className="h-5 w-5" />, label: "Conversões", value: mockAnalytics.conversions.toLocaleString(), color: "text-primary" },
-                                    { icon: <DollarSign className="h-5 w-5" />, label: "Receita", value: `€${mockAnalytics.revenue.toFixed(2)}`, color: "text-gold" },
+                                    { icon: <Eye className="h-5 w-5" />, label: "Visualizações", value: totalContentViews.toLocaleString(), color: "text-blue-400" },
+                                    { icon: <MousePointerClick className="h-5 w-5" />, label: "Vendas", value: totalContentSales.toLocaleString(), color: "text-green-400" },
+                                    { icon: <TrendingUp className="h-5 w-5" />, label: "Subscritores", value: creatorStats.totalSubscribers.toLocaleString(), color: "text-primary" }, 
+                                    { icon: <DollarSign className="h-5 w-5" />, label: "Receita(MZN)", value: `${totalContentRevenue.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "text-gold" },
                                 ].map((stat, i) => (
                                     <div key={i} className="p-4 rounded-lg bg-secondary/50 text-center">
                                         <div className={`${stat.color} mx-auto mb-2`}>{stat.icon}</div>
@@ -502,7 +560,7 @@ const ProfilePage = () => {
                             <div className="h-64">
                                 <p className="text-sm text-muted-foreground mb-3">Crescimento Semanal</p>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={mockAnalytics.dailyData}>
+                                    <LineChart data={creatorStats.dailyData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 18%)" />
                                         <XAxis dataKey="day" stroke="hsl(0 0% 60%)" fontSize={12} />
                                         <YAxis stroke="hsl(0 0% 60%)" fontSize={12} />

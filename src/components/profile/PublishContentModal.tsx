@@ -93,8 +93,6 @@ const PublishContentModal = ({ open, onOpenChange, onPublish }: PublishContentMo
 
       const response = await contentService.createContent(formData);
 
-      console.log('Yoooooooo  ', response)
-
       if (response.status === "success") {
         toast({ title: "Sucesso!", description: "Conteúdo publicado com sucesso." });
 

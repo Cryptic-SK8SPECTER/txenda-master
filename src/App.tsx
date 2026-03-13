@@ -15,6 +15,8 @@ import RecoverPassword from "./pages/RecoverPassword";
 import { AuthProvider } from "./context/AuthContext";
 import NotFound from "./pages/NotFound";
 import SuccessPage from "./pages/SuccessPage";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
 
 const queryClient = new QueryClient();
 
@@ -27,12 +29,37 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/recover" element={<RecoverPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/payment-success" element={<SuccessPage />} />
+            <Route
+              path="/subscription"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rotas de Retorno do Stripe */}
+            <Route
+              path="/payment-success"
+              element={
+                <ProtectedRoute>
+                  <SuccessPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/subscription/cancel"
+              element={
+                <ProtectedRoute>
+                  <CancelSubscriptionPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

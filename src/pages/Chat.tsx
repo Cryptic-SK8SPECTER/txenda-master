@@ -26,9 +26,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/context/AuthContext";
 
 const Chat = () => {
-  const [userPlan] = useState<"standard" | "premium" | "vip">("standard");
+  const { planTier } = useAuth();
+  const userPlan = planTier === "free" ? "standard" : (planTier as "standard" | "premium" | "vip");
   const [messagesLeft] = useState(3); // Apenas para plano Standard
 
   return (
@@ -168,7 +170,7 @@ const Chat = () => {
               </div>
             </ScrollArea>
 
-            {/* 6️⃣ Indicador de Plano (Standard) */}
+            {/* 6️⃣ Indicador de Plano (Standard / Free) */}
             {userPlan === "standard" && (
               <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 flex items-center justify-between">
                 <p className="text-[10px] font-medium text-amber-500 uppercase tracking-tighter">

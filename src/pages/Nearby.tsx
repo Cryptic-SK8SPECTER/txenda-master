@@ -26,13 +26,16 @@ import { locationService } from "@/services/locationService";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { type FilterState, defaultFilters } from "@/types/filters";
 
 const Nearby = () => {
   // --- Estados de UI ---
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [sortOption, setSortOption] = useState("mais_proximos");
   const [plan] = useState<"standard" | "premium" | "vip">("standard");
+  const [selectedUserForRoute, setSelectedUserForRoute] = useState<any | null>(null);
 
   // --- Estados de Dados ---
   const [users, setUsers] = useState<any[]>([]);
@@ -71,6 +74,7 @@ const Nearby = () => {
           // 2. Formatação para o PersonCard
           const formattedUsers = filteredData.map((loc: any) => ({
             ...loc.user,
+            location: loc.location, // <-- CRUCIAL: Passar a localização geoespacial para os pins!
             distance: loc.distance ? `${loc.distance.toFixed(1)} km` : "Perto",
             isOnline: loc.user?.isOnline || false,
           }));
@@ -138,7 +142,10 @@ const Nearby = () => {
           <Button
             variant={viewMode === "list" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => setViewMode("list")}
+            onClick={() => {
+              setViewMode("list");
+              setSelectedUserForRoute(null);
+            }}
             className="h-8 text-xs"
           >
             <ListIcon className="h-3.5 w-3.5 mr-1" /> Lista
@@ -177,24 +184,14 @@ const Nearby = () => {
             </p>
           </div>
         ) : viewMode === "map" ? (
-          // Visão de Mapa (Bloqueio de Plano)
-          plan === "standard" ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/10">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <MapIcon className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Modo Mapa Indisponível</h3>
-              <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-                Atualize para o plano Premium para ver exatamente onde as
-                pessoas estão.
-              </p>
-              <Button>Ver Planos</Button>
-            </div>
-          ) : (
-            <div className="flex-1 relative">
-              <MapView users={users} />
-            </div>
-          )
+          <div className="flex-1 relative">
+            <MapView
+              users={users}
+              currentLocation={location}
+              selectedUserForRoute={selectedUserForRoute}
+              loggedInUser={currentUser}
+            />
+          </div>
         ) : (
           // Visão de Lista
           <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -215,7 +212,14 @@ const Nearby = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {users.map((user) => (
-                <PersonCard key={user._id} person={user} />
+                <PersonCard
+                  key={user._id}
+                  person={user}
+                  onRouteSelect={(user) => {
+                    setSelectedUserForRoute(user);
+                    setViewMode("map");
+                  }}
+                />
               ))}
             </div>
 
@@ -255,7 +259,12 @@ const Nearby = () => {
         )}
       </main>
 
-      <FilterDialog open={filtersOpen} onOpenChange={setFiltersOpen} />
+      <FilterDialog
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={filters}
+        onApplyFilters={setFilters}
+      />
     </div>
   );
 };

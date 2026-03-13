@@ -13,7 +13,7 @@ import Profile from "@/pages/Profile";
 import Details from "@/pages/Details";
 import Favorites from "@/pages/Favorites";
 import { Badge } from "@/components/ui/badge";
-import { Filter, ShieldCheck, MapPin, MapPinOff } from "lucide-react";
+import { Filter, ShieldCheck, MapPin, MapPinOff, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterDialog from "@/components/dashboard/FilterDialog";
 import { useState } from "react";
@@ -22,13 +22,34 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import NotificationPage from "./NoficiationPage";
+import { type FilterState, defaultFilters } from "@/types/filters";
+import { useAuth } from "@/context/AuthContext";
 
 const DashboardHome = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const { status } = useGeolocation();
+  const { user } = useAuth();
+
+
+  const activeFiltersCount = Object.keys(filters).filter((key) => {
+    // Lógica simples para contar quantos filtros não estão no padrão
+    return (
+      JSON.stringify(filters[key as keyof FilterState]) !==
+      JSON.stringify(defaultFilters[key as keyof FilterState])
+    );
+  }).length;
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    const search = searchParams.get("search") || "";
+    if (filters.searchTerm !== search) {
+      setFilters((prev) => ({ ...prev, searchTerm: search }));
+    }
+  }, [searchParams, filters.searchTerm]);
 
   useEffect(() => {
     if (searchParams.get("status") === "success") {
@@ -53,9 +74,15 @@ const DashboardHome = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1">
-              <ShieldCheck className="h-3 w-3" /> Perfil Verificado
-            </Badge>
+            {user?.isVerified ? (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1">
+                <ShieldCheck className="h-3 w-3" /> Perfil Verificado
+              </Badge>
+            ) : (
+              <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30 gap-1">
+                <Shield className="h-3 w-3" /> Perfil Não Verificado
+              </Badge>
+            )}
             <Badge className="bg-secondary text-muted-foreground border-border">
               +18
             </Badge>
@@ -65,7 +92,13 @@ const DashboardHome = () => {
               className="h-8 gap-1.5 text-xs border-border"
               onClick={() => setFiltersOpen(true)}
             >
-              <Filter className="h-3.5 w-3.5" /> Filtros
+              <Filter className="h-3.5 w-3.5" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
+                  {activeFiltersCount}
+                </span>
+              )}
+              Filtros
             </Button>
           </div>
         </div>
@@ -73,7 +106,7 @@ const DashboardHome = () => {
 
       {/* Feed sections */}
       <div className="px-4 lg:px-6 py-6 space-y-8">
-        <AvailableNowSection />
+        <AvailableNowSection filters={filters} />
         {/* Geolocation-dependent section */}
         {status === "requesting" && (
           <div className="text-center py-8 glass rounded-xl animate-pulse">
@@ -86,7 +119,7 @@ const DashboardHome = () => {
             </p>
           </div>
         )}
-        {status === "granted" && <NearbyPeopleSection />}
+        {status === "granted" && <NearbyPeopleSection filters={filters} />}
         {status === "denied" && (
           <div className="text-center py-8 glass rounded-xl">
             <MapPinOff className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
@@ -99,7 +132,7 @@ const DashboardHome = () => {
             </p>
           </div>
         )}
-        <PremiumContentSection />
+        <PremiumContentSection filters={filters} />
 
         {/* Empty state fallback */}
         <div className="text-center py-8 glass rounded-xl">
@@ -112,7 +145,12 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      <FilterDialog open={filtersOpen} onOpenChange={setFiltersOpen} />
+      <FilterDialog
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={filters}
+        onApplyFilters={(newFilters) => setFilters(newFilters)}
+      />
     </>
   );
 };
@@ -135,6 +173,7 @@ const Dashboard = () => {
                 <Route path="details/:id" element={<Details />} />
                 <Route path="chat/:id" element={<ChatPage />} />
                 <Route path="subscription" element={<SubscriptionPage />} />
+                <Route path="notifications" element={<NotificationPage />} />
               </Routes>
             </main>
             <MobileBottomNav />

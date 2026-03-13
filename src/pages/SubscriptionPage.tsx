@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { planService } from "@/services/planService";
 import axios from "axios";
 
+
 const SubscriptionPage = () => {
   const [plans, setPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -151,11 +152,10 @@ const SubscriptionPage = () => {
           return (
             <Card
               key={plan._id}
-              className={`relative p-8 flex flex-col transition-all duration-300 ${
-                isVIP
-                  ? "bg-[#111] border-amber-500/50 shadow-[0_0_40px_-10px_rgba(245,158,11,0.2)] scale-105 z-10 overflow-hidden"
-                  : "bg-card/40 border-border backdrop-blur-sm hover:border-white/20"
-              }`}
+              className={`relative p-8 flex flex-col transition-all duration-300 ${isVIP
+                ? "bg-[#111] border-amber-500/50 shadow-[0_0_40px_-10px_rgba(245,158,11,0.2)] scale-105 z-10 overflow-hidden"
+                : "bg-card/40 border-border backdrop-blur-sm hover:border-white/20"
+                }`}
             >
               {isVIP && (
                 <div className="absolute top-4 right-4">
@@ -205,7 +205,6 @@ const SubscriptionPage = () => {
                   />
                 ))}
               </ul>
-
               <Button
                 onClick={() => handleSubscribe(plan._id)}
                 disabled={isCurrentPlan} // Impede o erro 400 ao desativar o clique
@@ -216,19 +215,23 @@ const SubscriptionPage = () => {
                       ? "outline"
                       : "default"
                 }
-                className={`w-full h-12 rounded-xl font-bold transition-transform active:scale-95 ${
-                  isCurrentPlan
-                    ? "opacity-80 cursor-default"
-                    : isVIP
-                      ? "bg-amber-500 hover:bg-amber-600 text-black"
-                      : ""
-                }`}
-              >
-                {isCurrentPlan
-                  ? "Plano Atual ✅"
+                className={`w-full h-12 rounded-xl font-bold transition-transform active:scale-95 ${isCurrentPlan
+                  ? "opacity-80 cursor-default"
                   : isVIP
-                    ? "Assinar Agora VIP"
-                    : "Escolher Plano"}
+                    ? "bg-amber-500 hover:bg-amber-600 text-black"
+                    : ""
+                  }`}
+              >
+                {isCurrentPlan ? (
+                  <>
+                    Plano Atual
+                    <Check />
+                  </>
+                ) : isVIP ? (
+                  "Assinar Agora VIP"
+                ) : (
+                  "Escolher Plano"
+                )}
               </Button>
             </Card>
           );

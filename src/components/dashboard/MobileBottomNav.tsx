@@ -1,11 +1,11 @@
-import { Home, Search, MessageCircle, Diamond, User } from "lucide-react";
+import { Home, Search, Star, Bell, User } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 const navItems = [
   { icon: Home, label: "Início", to: "/dashboard" },
-  { icon: Search, label: "Buscar", to: "/dashboard/nearby" },
-  { icon: MessageCircle, label: "Mensagens", to: "/dashboard/messages" },
-  { icon: Diamond, label: "Conteúdo", to: "/dashboard/premium" },
+  { icon: Search, label: "Pessoas", to: "/dashboard/nearby" },
+  { icon: Star, label: "Favoritos", to: "/dashboard/favorites" },
+  { icon: Bell, label: "Notificações", to: "/dashboard/notifications" },
   { icon: User, label: "Perfil", to: "/dashboard/profile" },
 ];
 

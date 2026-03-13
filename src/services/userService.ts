@@ -42,9 +42,6 @@ export const userService = {
 
   getUser: async (id: string) => {
     const response = await customFetch.get(`users/${id}`);
-
-    console.log("Resposta do servidor:", response); // Log completo da resposta
-
     return response.data;
   },
 };

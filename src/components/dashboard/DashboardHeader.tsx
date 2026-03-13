@@ -1,4 +1,4 @@
-import { Search, Bell, MessageCircle, ChevronDown } from "lucide-react";
+import { Search, Bell, MessageCircle, ChevronDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,21 +10,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { logoutUser } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { basicUrl } from "@/utils/index";
-
-
+import { useState, useEffect } from "react";
+import { getMyNotifications, type Notification } from "@/services/notificationService";
 const DashboardHeader = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { user, profile } = useAuth();
 
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const notifs = await getMyNotifications();
+        setNotifications(notifs.slice(0, 5)); // show max 5 in header
+        setUnreadCount(notifs.filter(n => !n.read).length);
+      } catch (e) {
+        console.error("Erro ao procurar notificações Header", e);
+      }
+    };
+    if (user) {
+      fetchNotifs();
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await logoutUser();
@@ -39,14 +57,24 @@ const DashboardHeader = () => {
   };
   const showSearch = location.pathname === "/dashboard";
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const normalizedValue = rawValue.trim().toLowerCase();
+
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (normalizedValue) {
+      nextParams.set("search", normalizedValue);
+    } else {
+      nextParams.delete("search");
+    }
+
+    setSearchParams(nextParams);
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 backdrop-blur-xl px-4 lg:px-6">
       <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-
-      {/* Logo mobile */}
-      <span className="font-display text-lg font-bold text-gradient lg:hidden">
-        Conexus
-      </span>
 
       {/* Search */}
       <div
@@ -54,21 +82,14 @@ const DashboardHeader = () => {
       >
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Pesquisar nome, cidade, interesses..."
+          placeholder="Pesquisar conteúdos..."
           className="pl-9 bg-secondary border-border/50 focus:border-primary"
+          value={searchParams.get("search") || ""}
+          onChange={handleSearchChange}
         />
       </div>
 
       <div className="flex items-center gap-2 ml-auto sm:ml-0">
-        {/* Search mobile */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`sm:hidden text-muted-foreground ${showSearch ? "" : "invisible"}`}
-        >
-          <Search className="h-5 w-5" />
-        </Button>
-
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -78,20 +99,49 @@ const DashboardHeader = () => {
               className="relative text-muted-foreground hover:text-foreground"
             >
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold flex items-center justify-center text-primary-foreground">
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold flex items-center justify-center text-primary-foreground animate-in zoom-in">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-64 bg-card border-border"
+            className="w-80 bg-card border-border p-1"
           >
-            <DropdownMenuItem>🔔 Nova mensagem de João</DropdownMenuItem>
-            <DropdownMenuItem>🔔 Venda concluída</DropdownMenuItem>
-            <DropdownMenuItem>🔔 Comentário em conteúdo</DropdownMenuItem>
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-sm font-semibold">Notificações</span>
+            </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center text-xs text-muted-foreground">
+            
+            {notifications.length === 0 ? (
+               <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                 Sem notificações recentes
+               </div>
+            ) : (
+               notifications.map(n => (
+                 <DropdownMenuItem 
+                   key={n._id}
+                   className={`flex flex-col items-start gap-1 p-3 cursor-pointer group ${!n.read ? 'bg-primary/5' : ''}`}
+                   onClick={() => navigate(n.link || '/dashboard/notifications')}
+                 >
+                   <div className="flex items-center gap-2 w-full">
+                     <span className={`h-2 w-2 rounded-full shrink-0 ${!n.read ? 'bg-primary' : 'bg-transparent'}`} />
+                     <span className={`text-xs truncate ${!n.read ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{n.title}</span>
+                   </div>
+                   <span className="text-[10px] text-muted-foreground line-clamp-2 pl-4">
+                     {n.message}
+                   </span>
+                 </DropdownMenuItem>
+               ))
+            )}
+            
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="justify-center text-xs text-primary font-medium cursor-pointer"
+              onClick={() => navigate("/dashboard/notifications")}
+            >
               Ver todas as notificações
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -30,7 +30,7 @@ const Index = () => {
     const fetchFeed = async () => {
       setLoading(true); // Ativa o skeleton
       try {
-        const res = await contentService.getAllContents(currentPage, ITEMS_PER_PAGE);
+        const res = await contentService.getAllContents(currentPage, ITEMS_PER_PAGE, undefined);
 
         // LOG DE DEBUG - Verifique o que aparece no console agora
 

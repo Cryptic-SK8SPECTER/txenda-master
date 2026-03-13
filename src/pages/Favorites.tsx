@@ -21,9 +21,6 @@ const Favorites = () => {
       setLoading(true);
       const res = await favoriteService.loadFavorites();
 
-      // DEBUG: Monitorização dos dados brutos recebidos do backend
-      console.log("DADOS RECEBIDOS DO SERVER:", res.data);
-
       const favoritesData = res.data?.data || [];
 
       // Formatação e proteção dos dados para o PersonCard

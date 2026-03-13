@@ -35,10 +35,13 @@ import {
   SlidersHorizontal,
   Lock,
 } from "lucide-react";
+import { type FilterState, defaultFilters } from "@/types/filters";
 
 interface FilterDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  filters: FilterState;
+  onApplyFilters: (filters: FilterState) => void;
 }
 
 const quickFilters = [
@@ -48,44 +51,56 @@ const quickFilters = [
   { icon: Video, label: "Conteúdo Premium", color: "text-primary" },
 ];
 
-const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
-  const [activeQuickFilters, setActiveQuickFilters] = useState<string[]>([]);
-  const [distance, setDistance] = useState([25]);
-  const [ageRange, setAgeRange] = useState([18, 45]);
-  const [priceRange, setPriceRange] = useState([0, 50]);
-  const [selectedIntentions, setSelectedIntentions] = useState<string[]>([]);
-  const [selectedProfileTypes, setSelectedProfileTypes] = useState<string[]>(
-    [],
-  );
-  const [selectedContentType, setSelectedContentType] = useState("ambos");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [resultCount] = useState(247);
+const FilterDialog = ({
+  open,
+  onOpenChange,
+  filters,
+  onApplyFilters,
+}: FilterDialogProps) => {
+  const [local, setLocal] = useState<FilterState>(filters);
 
-  const toggleQuickFilter = (label: string) => {
-    setActiveQuickFilters((prev) =>
-      prev.includes(label) ? prev.filter((f) => f !== label) : [...prev, label],
-    );
+  // Sync when dialog opens
+  const handleOpenChange = (o: boolean) => {
+    if (o) setLocal(filters);
+    onOpenChange(o);
   };
 
-  const toggleItem = (
+  const update = <K extends keyof FilterState>(key: K, value: FilterState[K]) =>
+    setLocal((prev) => ({ ...prev, [key]: value }));
+
+  const toggleInList = (
+    key:
+      | "quickFilters"
+      | "intentions"
+      | "profileTypes"
+      | "popularity"
+      | "categories",
     item: string,
-    list: string[],
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-  ) => {
-    setter(
-      list.includes(item) ? list.filter((i) => i !== item) : [...list, item],
-    );
-  };
+  ) =>
+    setLocal((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(item)
+        ? prev[key].filter((i) => i !== item)
+        : [...prev[key], item],
+    }));
 
   const clearAll = () => {
-    setActiveQuickFilters([]);
-    setDistance([25]);
-    setAgeRange([18, 45]);
-    setPriceRange([0, 50]);
-    setSelectedIntentions([]);
-    setSelectedProfileTypes([]);
-    setSelectedContentType("ambos");
-    setSelectedCategories([]);
+    // 1. Criamos o estado limpo
+    const resetFilters = { ...defaultFilters };
+
+    // 2. Atualizamos o estado visual do Dialog
+    setLocal(resetFilters);
+
+    // 3. APLICAMOS IMEDIATAMENTE ao pai (DashboardHome)
+    onApplyFilters(resetFilters);
+
+    // 4. (Opcional) Fecha o Dialog automaticamente após limpar
+    onOpenChange(false);
+  };
+
+  const handleApply = () => {
+    onApplyFilters(local);
+    onOpenChange(false);
   };
 
   const intentions = [
@@ -121,7 +136,7 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
   ];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         className="w-full sm:max-w-md border-border bg-background p-0 flex flex-col"
@@ -147,11 +162,11 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2 pb-4">
             {quickFilters.map((qf) => {
-              const active = activeQuickFilters.includes(qf.label);
+              const active = local.quickFilters.includes(qf.label);
               return (
                 <button
                   key={qf.label}
-                  onClick={() => toggleQuickFilter(qf.label)}
+                  onClick={() => toggleInList("quickFilters", qf.label)}
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition-all ${
                     active
                       ? "bg-primary/20 border-primary text-primary"
@@ -178,12 +193,12 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                     Raio de distância
                   </Label>
                   <span className="text-xs font-semibold text-primary">
-                    {distance[0]} km
+                    {local.distance} km
                   </span>
                 </div>
                 <Slider
-                  value={distance}
-                  onValueChange={setDistance}
+                  value={[local.distance]}
+                  onValueChange={([v]) => update("distance", v)}
                   min={1}
                   max={100}
                   step={1}
@@ -192,9 +207,9 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                   {[5, 10, 25, 50].map((d) => (
                     <button
                       key={d}
-                      onClick={() => setDistance([d])}
+                      onClick={() => update("distance", d)}
                       className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
-                        distance[0] === d
+                        local.distance === d
                           ? "bg-primary/20 border-primary text-primary"
                           : "border-border text-muted-foreground hover:border-primary/50"
                       }`}
@@ -212,13 +227,18 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                   <Input
                     placeholder="Ex: Lisboa"
                     className="h-8 text-xs bg-secondary border-border"
+                    value={local.city}
+                    onChange={(e) => update("city", e.target.value)}
                   />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1 block">
                     País
                   </Label>
-                  <Select>
+                  <Select
+                    value={local.country}
+                    onValueChange={(v) => update("country", v)}
+                  >
                     <SelectTrigger className="h-8 text-xs bg-secondary border-border">
                       <SelectValue placeholder="Selecionar" />
                     </SelectTrigger>
@@ -243,12 +263,14 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-xs text-muted-foreground">Idade</Label>
                   <span className="text-xs font-semibold text-primary">
-                    {ageRange[0]} – {ageRange[1]} anos
+                    {local.ageRange[0]} – {local.ageRange[1]} anos
                   </span>
                 </div>
                 <Slider
-                  value={ageRange}
-                  onValueChange={setAgeRange}
+                  value={local.ageRange}
+                  onValueChange={(v) =>
+                    update("ageRange", v as [number, number])
+                  }
                   min={18}
                   max={65}
                   step={1}
@@ -259,7 +281,10 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                   <Label className="text-xs text-muted-foreground mb-1 block">
                     Género
                   </Label>
-                  <Select>
+                  <Select
+                    value={local.gender}
+                    onValueChange={(v) => update("gender", v)}
+                  >
                     <SelectTrigger className="h-8 text-xs bg-secondary border-border">
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
@@ -275,7 +300,10 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                   <Label className="text-xs text-muted-foreground mb-1 block">
                     Estado
                   </Label>
-                  <Select>
+                  <Select
+                    value={local.status}
+                    onValueChange={(v) => update("status", v)}
+                  >
                     <SelectTrigger className="h-8 text-xs bg-secondary border-border">
                       <SelectValue placeholder="Qualquer" />
                     </SelectTrigger>
@@ -299,17 +327,11 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
           <Section icon={Target} title="Intenção / Objetivo">
             <div className="flex flex-wrap gap-2">
               {intentions.map((intent) => {
-                const active = selectedIntentions.includes(intent);
+                const active = local.intentions.includes(intent);
                 return (
                   <button
                     key={intent}
-                    onClick={() =>
-                      toggleItem(
-                        intent,
-                        selectedIntentions,
-                        setSelectedIntentions,
-                      )
-                    }
+                    onClick={() => toggleInList("intentions", intent)}
                     className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-all ${
                       active
                         ? "bg-primary/20 border-primary text-primary"
@@ -334,14 +356,8 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                   className="flex items-center gap-2.5 cursor-pointer group"
                 >
                   <Checkbox
-                    checked={selectedProfileTypes.includes(pt)}
-                    onCheckedChange={() =>
-                      toggleItem(
-                        pt,
-                        selectedProfileTypes,
-                        setSelectedProfileTypes,
-                      )
-                    }
+                    checked={local.profileTypes.includes(pt)}
+                    onCheckedChange={() => toggleInList("profileTypes", pt)}
                     className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                   <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
@@ -357,15 +373,23 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
           {/* Popularity */}
           <Section icon={Star} title="Popularidade">
             <div className="flex flex-wrap gap-2">
-              {popularityOptions.map((opt) => (
-                <Badge
-                  key={opt}
-                  variant="outline"
-                  className="cursor-pointer border-border text-muted-foreground hover:border-primary hover:text-primary transition-all text-xs"
-                >
-                  {opt}
-                </Badge>
-              ))}
+              {popularityOptions.map((opt) => {
+                const active = local.popularity.includes(opt);
+                return (
+                  <Badge
+                    key={opt}
+                    variant="outline"
+                    onClick={() => toggleInList("popularity", opt)}
+                    className={`cursor-pointer transition-all text-xs ${
+                      active
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                    }`}
+                  >
+                    {opt}
+                  </Badge>
+                );
+              })}
             </div>
           </Section>
 
@@ -382,9 +406,9 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                   {["fotos", "vídeos", "ambos"].map((t) => (
                     <button
                       key={t}
-                      onClick={() => setSelectedContentType(t)}
+                      onClick={() => update("contentType", t)}
                       className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium border transition-all capitalize ${
-                        selectedContentType === t
+                        local.contentType === t
                           ? "bg-primary/20 border-primary text-primary"
                           : "bg-secondary border-border text-muted-foreground hover:border-primary/50"
                       }`}
@@ -400,15 +424,18 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-xs text-muted-foreground">Preço</Label>
                   <span className="text-xs font-semibold text-primary">
-                    {priceRange[0]}MZN – {priceRange[1]}MZN
+                    {local.priceRange[0].toLocaleString()} MZN –{" "}
+                    {local.priceRange[1].toLocaleString()} MZN
                   </span>
                 </div>
                 <Slider
-                  value={priceRange}
-                  onValueChange={setPriceRange}
+                  value={local.priceRange}
+                  onValueChange={(v) =>
+                    update("priceRange", v as [number, number])
+                  }
                   min={0}
-                  max={100}
-                  step={1}
+                  max={100000}
+                  step={50}
                 />
               </div>
 
@@ -418,17 +445,11 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((cat) => {
-                    const active = selectedCategories.includes(cat);
+                    const active = local.categories.includes(cat);
                     return (
                       <button
                         key={cat}
-                        onClick={() =>
-                          toggleItem(
-                            cat,
-                            selectedCategories,
-                            setSelectedCategories,
-                          )
-                        }
+                        onClick={() => toggleInList("categories", cat)}
                         className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-all ${
                           active
                             ? "bg-primary/20 border-primary text-primary"
@@ -451,7 +472,17 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                     <Badge
                       key={r}
                       variant="outline"
-                      className="cursor-pointer border-border text-muted-foreground hover:border-primary hover:text-primary transition-all text-xs gap-1"
+                      onClick={() =>
+                        update(
+                          "creatorRating",
+                          local.creatorRating === r ? "" : r,
+                        )
+                      }
+                      className={`cursor-pointer transition-all text-xs gap-1 ${
+                        local.creatorRating === r
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                      }`}
                     >
                       <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
                       {r}
@@ -464,7 +495,10 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
                 <Label className="text-xs text-muted-foreground mb-2 block">
                   Data
                 </Label>
-                <Select>
+                <Select
+                  value={local.contentDate}
+                  onValueChange={(v) => update("contentDate", v)}
+                >
                   <SelectTrigger className="h-8 text-xs bg-secondary border-border">
                     <SelectValue placeholder="Qualquer período" />
                   </SelectTrigger>
@@ -520,13 +554,9 @@ const FilterDialog = ({ open, onOpenChange }: FilterDialogProps) => {
 
         <SheetFooter className="px-5 py-4 border-t border-border bg-background">
           <div className="w-full space-y-2">
-            <div className="text-center text-xs text-muted-foreground">
-              <span className="text-primary font-semibold">{resultCount}</span>{" "}
-              resultados encontrados
-            </div>
             <Button
               className="w-full btn-gradient text-primary-foreground font-semibold"
-              onClick={() => onOpenChange(false)}
+              onClick={handleApply}
             >
               Aplicar Filtros
             </Button>

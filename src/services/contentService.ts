@@ -13,8 +13,8 @@ export const contentService = {
   },
 
   // Listar conteúdos do criador logado
-  getMyContents: async () => {
-    const response = await customFetch.get(`${API_URL}/my-contents`, {
+  getMyContents: async (page: number = 1, limit: number = 6) => {
+    const response = await customFetch.get(`${API_URL}/my-contents?page=${page}&limit=${limit}`, {
       withCredentials: true
     });
     return response.data;
@@ -35,8 +35,38 @@ export const contentService = {
     return response.data;
   },
 
-  getAllContents: async (page = 1, limit = 12) => {
-    const response = await customFetch.get(`contents?page=${page}&limit=${limit}`);
+  getAllContents: async (page = 1, limit = 12, filters?: any) => {
+    let url = `contents?page=${page}&limit=${limit}`;
+
+    // Adicionar parâmetros de filtro na URL se existirem
+    if (filters) {
+      if (filters.priceRange && (filters.priceRange[0] !== 0 || filters.priceRange[1] !== 100000)) {
+        url += `&minPrice=${filters.priceRange[0]}&maxPrice=${filters.priceRange[1]}`;
+      }
+      
+      if (filters.contentType && filters.contentType.toLowerCase() !== "ambos") {
+        const typeMap: Record<string, string> = {
+          fotos: "photo",
+          vídeos: "video",
+        };
+        const targetType = typeMap[filters.contentType.toLowerCase()];
+        if (targetType) url += `&type=${targetType}`;
+      }
+      
+      if (filters.categories && filters.categories.length > 0) {
+        url += `&categories=${filters.categories.join(',')}`;
+      }
+
+      if (filters.searchTerm) {
+        url += `&search=${encodeURIComponent(filters.searchTerm)}`;
+      }
+
+      if (filters.contentDate) {
+        url += `&contentDate=${encodeURIComponent(filters.contentDate)}`;
+      }
+    }
+
+    const response = await customFetch.get(url);
     return response.data;
   },
 };

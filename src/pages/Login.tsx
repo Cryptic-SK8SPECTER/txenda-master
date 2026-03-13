@@ -29,8 +29,7 @@ const Login = () => {
       const res = await login(email, password);
 
       if (res.status === 'success') {
-        // Agora passamos o token como segundo argumento
-        signin(res.data.user, res.token); 
+        await signin(res.data.user, res.token);
         navigate('/dashboard');
       }
     } catch (error: any) {

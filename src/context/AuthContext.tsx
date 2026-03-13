@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import {
-  logoutUser,
-  initializeSocket,
-  disconnectSocket,
-} from "@/services/authService";
+import { initializeSocket, disconnectSocket } from "@/services/authService";
 import { customFetch } from "@/utils/index";
+
+type PlanTier = "free" | "standard" | "premium" | "vip";
 
 interface AuthContextType {
   user: any;
@@ -16,6 +14,8 @@ interface AuthContextType {
   calculateAge: (dob: string) => number | null;
   setUser: React.Dispatch<React.SetStateAction<any>>;
   setProfile: React.Dispatch<React.SetStateAction<any>>;
+  planTier: PlanTier;
+  hasPlan: (required: PlanTier) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,11 +26,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [subscription, setSubscription] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Função para carregar dados complementares (Perfil e Assinatura)
   const loadExtraData = async (userId: string) => {
     if (!userId || userId === "undefined") return;
 
     try {
-      // Correr em paralelo para performance
       const [profileRes, subRes] = await Promise.allSettled([
         customFetch.get(`profiles/${userId}`),
         customFetch.get(`subscriptions/${userId}`),
@@ -51,27 +51,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Efeito para inicializar a aplicação (F5 ou abertura de aba)
+  // AuthContext.tsx
+
   useEffect(() => {
     const initializeAuth = async () => {
-      const savedUser = localStorage.getItem("user");
       const savedToken = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
 
-      if (savedUser && savedToken) {
+      // 1. RESTAURAÇÃO IMEDIATA E LIMPEZA DE LIXO
+      if (savedToken && savedUser) {
         try {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
+          // Se o que estiver guardado for lixo, removemos
+          if (savedUser === "undefined" || savedUser === "[object Object]") {
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+          } else {
+            const parsedUser = JSON.parse(savedUser);
+            setUser(parsedUser);
+            initializeSocket(parsedUser._id || parsedUser.id);
+            // Carregamos logo os dados extras para não "perder a secção"
+            loadExtraData(parsedUser._id || parsedUser.id);
+          }
+        } catch (e) {
+          console.error("❌ Dados locais corrompidos. Limpando...");
+          localStorage.removeItem("user");
+        }
+      }
 
-          const userId = parsedUser._id || parsedUser.id;
+      // 2. VALIDAÇÃO SILENCIOSA
+      if (savedToken) {
+        try {
+          const response = await customFetch.get("users/me");
 
-          // 1. ATIVA WEBSOCKET NA RESTAURAÇÃO DE SESSÃO
-          initializeSocket(userId);
+          const freshUser = response.data?.data?.data;
+          setUser(freshUser);
+          localStorage.setItem("user", JSON.stringify(freshUser));
+        } catch (err: any) {
+          const status = err.response?.status;
+          console.warn("Status da validação:", status);
 
-          // 2. Carrega dados complementares
-          await loadExtraData(userId);
-        } catch (err) {
-          console.error("Erro na recuperação do utilizador:", err);
-          logout();
+          // SÓ faz logout se o erro for de autenticação (401/403)
+          if (status === 401 || status === 403) {
+            logout();
+          } else {
+            // Erro de rede/CORS: mantemos o que restaurámos no Step 1
+            console.log("⚠️ Servidor inacessível, mantendo sessão local.");
+          }
         }
       }
 
@@ -82,27 +107,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signin = async (userData: any, token: string) => {
+    if (!userData || !token) return;
+
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
 
     setUser(userData);
     const userId = userData._id || userData.id;
 
-    // ATIVA WEBSOCKET NO LOGIN
-    initializeSocket(userId);
-
-    await loadExtraData(userId);
+    if (userId) {
+      initializeSocket(userId);
+      await loadExtraData(userId);
+    }
   };
 
   const logout = () => {
-    // DESCONECTA WEBSOCKET NO LOGOUT
     disconnectSocket();
-
     setUser(null);
     setProfile(null);
     setSubscription(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    // Usamos o location para garantir limpeza total do estado da app
     window.location.href = "/login";
   };
 
@@ -113,6 +139,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return Math.floor(
       (Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000),
     );
+  };
+
+  const resolvePlanTier = (): PlanTier => {
+    if (!subscription || subscription.status !== "active") return "free";
+    const name = (subscription.plan?.name || "").toLowerCase();
+    if (name.includes("vip")) return "vip";
+    if (name.includes("premium")) return "premium";
+    return "standard";
+  };
+
+  const currentPlanTier: PlanTier = resolvePlanTier();
+
+  const hasPlan = (required: PlanTier) => {
+    const order: Record<PlanTier, number> = {
+      free: 0,
+      standard: 1,
+      premium: 2,
+      vip: 3,
+    };
+    return order[currentPlanTier] >= order[required];
   };
 
   return (
@@ -127,12 +173,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser,
         setProfile,
         calculateAge,
+        planTier: currentPlanTier,
+        hasPlan,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
+};;
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
