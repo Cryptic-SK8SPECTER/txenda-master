@@ -43,9 +43,13 @@ export const schema = z
 
 
 
-// Base da API: aceita com ou sem barra final (ex.: Render/Vercel)
-const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:9000";
-export const basicUrl = rawApiUrl.endsWith("/") ? rawApiUrl : `${rawApiUrl}/`;
+// Base da API: aceita com ou sem barra final; e corrige caso venha com "/api/v1"
+// Ex: VITE_API_URL="https://...onrender.com/api/v1" -> basicUrl="https://...onrender.com/"
+const rawApiUrl = (import.meta.env.VITE_API_URL || "http://localhost:9000").trim();
+const normalizedApiUrl = rawApiUrl.replace(/\/api\/v1\/?$/i, "");
+export const basicUrl = normalizedApiUrl.endsWith("/")
+  ? normalizedApiUrl
+  : `${normalizedApiUrl}/`;
 const productionUrl = `${basicUrl}api/v1/`;
 
 export const customFetch = axios.create({
