@@ -1,11 +1,9 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:9000/api/v1/analytics';
+import { customFetch } from "@/utils/index";
 
 export const analyticsService = {
   getCreatorStats: async () => {
-    const response = await axios.get(`${API_URL}/creator-stats`, {
-      withCredentials: true
+    const response = await customFetch.get(`creator-stats`, {
+      withCredentials: true,
     });
     return response.data;
   }

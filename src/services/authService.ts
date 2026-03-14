@@ -1,13 +1,11 @@
-import axios from "axios";
 import { io, Socket } from "socket.io-client";
-import { basicUrl } from "@/utils/index";
+import { basicUrl, customFetch } from "@/utils/index";
 
-const API_URL = "http://localhost:9000/api/v1/users";
 let socket: Socket | null = null;
 
 export const login = async (email: string, password: string) => {
-  const response = await axios.post(
-    `${API_URL}/login`,
+  const response = await customFetch.post(
+    `login`,
     { email, password },
     { withCredentials: true },
   );
@@ -45,7 +43,9 @@ export const initializeSocket = (userId: string) => {
 
 // Envia o e-mail de recuperação
 export const forgotPassword = async (email: string) => {
-  const response = await axios.post(`${API_URL}/forgotPassword`, { email });
+  const response = await customFetch.post(`forgotPassword`, {
+    email,
+  });
   return response.data;
 };
 
@@ -55,7 +55,7 @@ export const resetPassword = async (
   password: string,
   passwordConfirm: string,
 ) => {
-  const response = await axios.patch(`${API_URL}/resetPassword/${token}`, {
+  const response = await customFetch.patch(`resetPassword/${token}`, {
     password,
     passwordConfirm,
   });
@@ -63,7 +63,7 @@ export const resetPassword = async (
 };
 
 export const registerUser = async (formData: FormData) => {
-  const response = await axios.post(`${API_URL}/signup`, formData, {
+  const response = await customFetch.post(`signup`, formData, {
     withCredentials: true,
   });
   return response.data;
@@ -71,7 +71,7 @@ export const registerUser = async (formData: FormData) => {
 
 export const logoutUser = async () => {
   try {
-    await axios.get(`${API_URL}/logout`, { withCredentials: true });
+    await customFetch.get(`logout`, { withCredentials: true });
 
     // DESCONECTA O SOCKET NO LOGOUT
     if (socket) {

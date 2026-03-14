@@ -1,11 +1,9 @@
 import { customFetch } from "@/utils/index";
 
-const API_URL = 'http://localhost:9000/api/v1/contents';
-
 export const contentService = {
   // Criar novo conteúdo (Upload)
   createContent: async (formData: FormData) => {
-    const response = await customFetch.post(API_URL, formData, {
+    const response = await customFetch.post('contents', formData, {
       withCredentials: true,
       headers: { 'Content-Type': 'multipart/form-data' }
     });
@@ -14,7 +12,7 @@ export const contentService = {
 
   // Listar conteúdos do criador logado
   getMyContents: async (page: number = 1, limit: number = 6) => {
-    const response = await customFetch.get(`${API_URL}/my-contents?page=${page}&limit=${limit}`, {
+    const response = await customFetch.get(`contents/my-contents?page=${page}&limit=${limit}`, {
       withCredentials: true
     });
     return response.data;
@@ -22,7 +20,7 @@ export const contentService = {
 
   // Apagar conteúdo
   deleteContent: async (id: string) => {
-    const response = await customFetch.delete(`${API_URL}/${id}`, {
+    const response = await customFetch.delete(`contents/${id}`, {
       withCredentials: true
     });
     return response.data;

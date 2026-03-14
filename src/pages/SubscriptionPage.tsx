@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { planService } from "@/services/planService";
-import axios from "axios";
+import { customFetch } from "@/utils/index";
 
 
 const SubscriptionPage = () => {
@@ -37,8 +37,8 @@ const SubscriptionPage = () => {
 
         // 2. Se o utilizador estiver logado, carregar a subscrição ativa
         if (user?._id) {
-          const resSub = await axios.get(
-            `http://localhost:9000/api/v1/subscriptions/${user._id}`,
+          const resSub = await customFetch.get(
+            `subscriptions/${user._id}`,
             { withCredentials: true },
           );
           // Armazenamos a subscrição para comparar IDs de plano depois
@@ -85,8 +85,8 @@ const SubscriptionPage = () => {
         description: "Estamos a preparar o seu checkout seguro.",
       });
 
-      const response = await axios.get(
-        `http://localhost:9000/api/v1/subscriptions/checkout-session/${planId}`,
+      const response = await customFetch.get(
+        `checkout-session/${planId}`,
         { withCredentials: true },
       );
 

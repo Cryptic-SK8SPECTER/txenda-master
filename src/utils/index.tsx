@@ -43,7 +43,8 @@ export const schema = z
 
 
 
-export const basicUrl = 'http://localhost:9000/';
+export const basicUrl =
+  import.meta.env.VITE_API_URL || "http://localhost:9000/";
 const productionUrl = `${basicUrl}api/v1/`;
 
 export const customFetch = axios.create({
