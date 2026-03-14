@@ -33,6 +33,12 @@ export const contentService = {
     return response.data;
   },
 
+  // Incrementar visualizações de um conteúdo específico
+  incrementViews: async (id: string) => {
+    const response = await customFetch.post(`contents/${id}/view`);
+    return response.data;
+  },
+
   getAllContents: async (page = 1, limit = 12, filters?: any) => {
     let url = `contents?page=${page}&limit=${limit}`;
 

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { fadeUp, basicUrl } from "@/utils/index";
 import { useAuth } from "@/context/AuthContext";
 import { purchaseService } from "@/services/purchaseService";
+import { contentService } from "@/services/contentService";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -52,7 +53,11 @@ const ContentCard = ({
   // 2. Bloqueado se for PPV e o utilizador ainda não comprou
   const needsPayment = isPayPerView && !hasPurchased;
 
-  const isLocked = needsSubscription || needsPayment;
+  // Conteúdos públicos são sempre visíveis (sem qualquer bloqueio)
+  const isAlwaysVisible = isPublic;
+  const isLocked = !isAlwaysVisible && (needsSubscription || needsPayment);
+
+  const [hasRegisteredView, setHasRegisteredView] = useState(false);
 
   // Verificar acesso PPV ao carregar o card (apenas se for PPV e o user estiver logado)
   useEffect(() => {
@@ -116,8 +121,8 @@ const ContentCard = ({
       className="glass rounded-xl overflow-hidden group hover:scale-[1.03] transition-all duration-300 hover:border-primary/30"
     >
       <div className="relative aspect-[4/5] overflow-hidden">
-        {/* Se o utilizador não for verificado, nunca mostramos a imagem/vídeo brutos */}
-        {currentUser?.isVerified && !isLocked ? (
+        {/* Se for conteúdo público, é sempre visível; senão só para utilizadores verificados e desbloqueados */}
+        {(isAlwaysVisible || currentUser?.isVerified) && !isLocked ? (
           <>
             {content.type === "photo" ? (
               <img
@@ -273,7 +278,18 @@ const ContentCard = ({
           </span>
 
           {!isLocked && (
-            <Dialog>
+            <Dialog
+              onOpenChange={async (open) => {
+                if (open && !hasRegisteredView) {
+                  try {
+                    await contentService.incrementViews(content._id);
+                    setHasRegisteredView(true);
+                  } catch (e) {
+                    console.error("Erro ao incrementar visualizações:", e);
+                  }
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button
                   variant="ghost"
