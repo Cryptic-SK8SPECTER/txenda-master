@@ -87,7 +87,7 @@ const PublishContentModal = ({ open, onOpenChange, onPublish }: PublishContentMo
       const formData = new FormData();
       formData.append("file", file); 
       formData.append("description", values.description);
-      formData.append("price", values.price);
+      formData.append("price", String(values.price ?? 0));
       formData.append("type", values.type);
       formData.append("visibility", values.visibility);
 
