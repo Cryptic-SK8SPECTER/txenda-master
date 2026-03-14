@@ -43,12 +43,14 @@ export const schema = z
 
 
 
-export const basicUrl =
-  import.meta.env.VITE_API_URL || "http://localhost:9000/";
+// Base da API: aceita com ou sem barra final (ex.: Render/Vercel)
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:9000";
+export const basicUrl = rawApiUrl.endsWith("/") ? rawApiUrl : `${rawApiUrl}/`;
 const productionUrl = `${basicUrl}api/v1/`;
 
 export const customFetch = axios.create({
   baseURL: productionUrl,
+  withCredentials: true, // necessário para cookies/auth em produção (CORS)
 });
 
 // Garante que todos os pedidos levam o token atualizado

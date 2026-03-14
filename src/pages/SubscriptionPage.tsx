@@ -86,7 +86,7 @@ const SubscriptionPage = () => {
       });
 
       const response = await customFetch.get(
-        `checkout-session/${planId}`,
+        `subscriptions/checkout-session/${planId}`,
         { withCredentials: true },
       );
 

@@ -1,5 +1,4 @@
 import { customFetch } from "@/utils/index";
-const API_URL = "http://localhost:9000/api/v1/favorites"; // Ajuste a porta se necessário
 
 export const favoriteService = {
   loadFavorites: async () => {
