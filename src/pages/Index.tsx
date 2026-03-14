@@ -118,7 +118,7 @@ const Index = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
           >
-            Ainda andas a oferecer o teu trabalho?{" "}
+            Ainda andas a oferecer o teu{" "}
             <span className="text-gradient">trabalho?</span>
           </motion.h1>
           <motion.p
