@@ -45,11 +45,15 @@ const PremiumContentSection = ({ filters }: PremiumContentSectionProps) => {
         
         setAllContents(rawData);
         setTotalItems(total);
-      } catch (err) {
+      } catch (err: any) {
+        const isNetworkError = err?.message === "Network Error" || err?.code === "ERR_NETWORK";
+        const description = isNetworkError
+          ? "A API não respondeu (CORS ou servidor). No Render defina FRONTEND_URL com o URL exato deste site; na Vercel defina VITE_API_URL com o URL da API."
+          : err?.response?.data?.message || "Não foi possível carregar os conteúdos.";
         console.error("Erro no fetch:", err);
         toast({
           title: "Erro ao carregar",
-          description: "Não foi possível carregar os conteúdos premium.",
+          description,
           variant: "destructive",
         });
       } finally {

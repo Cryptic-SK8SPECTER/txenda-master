@@ -62,6 +62,20 @@ customFetch.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor de erro: log e mensagem mais clara para Network Error (CORS / API inacessível)
+customFetch.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const isNetworkError = err.message === "Network Error" || err.code === "ERR_NETWORK";
+    if (isNetworkError) {
+      console.error("[API] Network Error — possíveis causas: CORS (FRONTEND_URL no Render), API em baixo ou URL errada (VITE_API_URL). URL base:", productionUrl);
+    } else if (err.response) {
+      console.error("[API] Erro", err.response.status, err.response.data?.message || err.response.data);
+    }
+    return Promise.reject(err);
+  }
+);
+
 export const visibilityLabels = {
   "Público": { label: "Público", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: <Globe className="h-3 w-3" /> },
   "Exclusivo assinantes": { label: "Exclusivo", color: "bg-primary/20 text-primary border-primary/30", icon: <Crown className="h-3 w-3" /> },
