@@ -10,7 +10,7 @@ export const chatService = {
     limit: number = 20,
   ) => {
     const response = await customFetch.get(
-      `/chats/${chatId}/messages?page=${page}&limit=${limit}&markRead=true`,
+      `chats/${chatId}/messages?page=${page}&limit=${limit}&markRead=true`,
     );
     return response.data;
   },
@@ -23,7 +23,7 @@ export const chatService = {
     content: string,
     attachments: string[] = [],
   ) => {
-    const response = await customFetch.post(`/chats/${chatId}/messages`, {
+    const response = await customFetch.post(`chats/${chatId}/messages`, {
       chatId,
       content,
       attachments,
@@ -36,12 +36,12 @@ export const chatService = {
    */
   markAsRead: async (chatId: string) => {
     const response = await customFetch.patch(
-      `/chats/${chatId}/mark-as-read/me`,
+      `chats/${chatId}/mark-as-read/me`,
     );
     return response.data;
   },
   getOrCreateChat: async (recipientId: string) => {
-    const response = await customFetch.post("/chats/get-or-create", {
+    const response = await customFetch.post("chats/get-or-create", {
       recipientId,
     });
     return response.data;

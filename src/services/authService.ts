@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 
 export const login = async (email: string, password: string) => {
   const response = await customFetch.post(
-    `login`,
+    `users/login`,
     { email, password },
     { withCredentials: true },
   );
@@ -43,7 +43,7 @@ export const initializeSocket = (userId: string) => {
 
 // Envia o e-mail de recuperação
 export const forgotPassword = async (email: string) => {
-  const response = await customFetch.post(`forgotPassword`, {
+  const response = await customFetch.post(`users/forgotPassword`, {
     email,
   });
   return response.data;
@@ -55,7 +55,7 @@ export const resetPassword = async (
   password: string,
   passwordConfirm: string,
 ) => {
-  const response = await customFetch.patch(`resetPassword/${token}`, {
+  const response = await customFetch.patch(`users/resetPassword/${token}`, {
     password,
     passwordConfirm,
   });
@@ -63,7 +63,7 @@ export const resetPassword = async (
 };
 
 export const registerUser = async (formData: FormData) => {
-  const response = await customFetch.post(`signup`, formData, {
+  const response = await customFetch.post(`users/signup`, formData, {
     withCredentials: true,
   });
   return response.data;
@@ -71,7 +71,7 @@ export const registerUser = async (formData: FormData) => {
 
 export const logoutUser = async () => {
   try {
-    await customFetch.get(`logout`, { withCredentials: true });
+    await customFetch.get(`users/logout`, { withCredentials: true });
 
     // DESCONECTA O SOCKET NO LOGOUT
     if (socket) {
