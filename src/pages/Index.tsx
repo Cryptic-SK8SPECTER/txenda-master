@@ -118,9 +118,8 @@ const Index = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
           >
-            Conexões reais.{" "}
-            <span className="text-gradient">Pessoas reais.</span> Intenções
-            claras.
+            Chegou a hora de monetizar a tua{" "}
+            <span className="text-gradient">Autenticidade.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -128,8 +127,8 @@ const Index = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
           >
-            Descubra encontros exclusivos e adquira conteúdo premium de quem
-            você deseja, em um ambiente seguro e discreto.
+            Não ofereças mais o teu trabalho de borla. Não aceites migalhas por
+            aquilo que os outros pagam para ver.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}

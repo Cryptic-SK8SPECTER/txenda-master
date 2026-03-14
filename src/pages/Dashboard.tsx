@@ -25,6 +25,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import NotificationPage from "./NoficiationPage";
 import { type FilterState, defaultFilters } from "@/types/filters";
 import { useAuth } from "@/context/AuthContext";
+import { motion } from "framer-motion";
 
 const DashboardHome = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -63,17 +64,33 @@ const DashboardHome = () => {
   return (
     <>
       {/* Welcome banner */}
-      <div className="px-4 lg:px-6 py-5 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-bold">
-              Bem-vindo de volta 👋
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="px-3 sm:px-4 lg:px-6 py-4 sm:py-6 border-b border-primary/10 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--primary)/0.08),transparent_70%)]" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+          >
+            <h1 className="font-display text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+              O prazer te espera 🔥
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Descubra novas conexões e conteúdos exclusivos perto de si.
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md">
+              Conexões reais, desejos exclusivos e pessoas perto de si — prontas
+              para te conhecer.
             </p>
-          </div>
-          <div className="flex items-center gap-2">
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="flex items-center gap-2 flex-wrap"
+          >
             {user?.isVerified ? (
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1">
                 <ShieldCheck className="h-3 w-3" /> Perfil Verificado
@@ -83,26 +100,25 @@ const DashboardHome = () => {
                 <Shield className="h-3 w-3" /> Perfil Não Verificado
               </Badge>
             )}
-            <Badge className="bg-secondary text-muted-foreground border-border">
+            <Badge className="bg-primary/20 text-primary border-primary/30 font-bold text-[10px] sm:text-xs">
               +18
             </Badge>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs border-border"
+              className="h-7 sm:h-8 gap-1.5 text-[10px] sm:text-xs border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
               onClick={() => setFiltersOpen(true)}
             >
-              <Filter className="h-3.5 w-3.5" />
+              <Filter className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Filtros
               {activeFiltersCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
                   {activeFiltersCount}
                 </span>
               )}
-              Filtros
             </Button>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Feed sections */}
       <div className="px-4 lg:px-6 py-6 space-y-8">
