@@ -118,8 +118,8 @@ const Index = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="font-display text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
           >
-            Chegou a hora de monetizar a tua{" "}
-            <span className="text-gradient">Autenticidade.</span>
+            Ainda andas a oferecer o teu trabalho?{" "}
+            <span className="text-gradient">trabalho?</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -127,8 +127,7 @@ const Index = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
           >
-            Não ofereças mais o teu trabalho de borla. Não aceites migalhas por
-            aquilo que os outros pagam para ver.
+            Chegou a plataforma que valoriza o que tu fazes.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
