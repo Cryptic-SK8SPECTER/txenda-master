@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Diamond, Target, Sparkles, Lock,  } from "lucide-react";
+import { MapPin, Diamond, Target, Sparkles, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ContentCard from "@/components/content/ContentCard";
@@ -10,10 +10,7 @@ import { fadeUp } from "@/utils/index";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
 import Pagination from "@/components/content/Pagination";
-import { ITEMS_PER_PAGE,benefits } from "@/utils/index";
-
-
-
+import { ITEMS_PER_PAGE, benefits } from "@/utils/index";
 
 const Index = () => {
   const isSubscribed = false;
@@ -30,7 +27,11 @@ const Index = () => {
     const fetchFeed = async () => {
       setLoading(true); // Ativa o skeleton
       try {
-        const res = await contentService.getAllContents(currentPage, ITEMS_PER_PAGE, undefined);
+        const res = await contentService.getAllContents(
+          currentPage,
+          ITEMS_PER_PAGE,
+          undefined,
+        );
 
         // LOG DE DEBUG - Verifique o que aparece no console agora
 
@@ -39,13 +40,12 @@ const Index = () => {
 
         setAllContents(contentArray);
         setTotalItems(total);
-
       } catch (err) {
         console.error("Erro no fetch:", err);
         toast({
           title: "Erro ao carregar",
           description: "Não foi possível carregar os conteúdos.",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         // ESTA LINHA É OBRIGATÓRIA PARA O SKELETON SUMIR
@@ -57,12 +57,9 @@ const Index = () => {
   }, [currentPage]);
 
   const handlePageChange = (page: number) => {
-
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-
   };
-
 
   return (
     <div className="min-h-screen bg-background font-body">
