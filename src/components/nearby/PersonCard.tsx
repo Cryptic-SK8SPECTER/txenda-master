@@ -113,25 +113,25 @@ const PersonCard = ({ person, onRouteSelect }: PersonCardProps) => {
       <div className="p-3 space-y-2">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-sm truncate">
-            {person.name.split(" ")[0]},{" "}
+            {person?.name?.split(" ")[0] || "Usuário"},{" "}
             {person.profile?.birthDate
               ? calculateAge(person?.profile?.birthDate)
               : ""}
           </span>
           {onRouteSelect ? (
-            <button 
-               className="text-[11px] text-primary hover:text-primary/80 font-medium flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full transition-colors"
-               onClick={(e) => {
-                 e.stopPropagation();
-                 onRouteSelect(person);
-               }}
+            <button
+              className="text-[11px] text-primary hover:text-primary/80 font-medium flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRouteSelect(person);
+              }}
             >
               <MapPin className="h-3 w-3" /> Ver Rota
             </button>
           ) : (
-             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-               <MapPin className="h-3 w-3" /> {person.distance}
-             </span>
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {person.distance}
+            </span>
           )}
         </div>
 

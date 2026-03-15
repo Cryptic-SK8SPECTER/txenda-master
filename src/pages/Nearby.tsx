@@ -72,18 +72,30 @@ const Nearby = () => {
           );
 
           // 2. Formatação para o PersonCard
-          const formattedUsers = filteredData.map((loc: any) => ({
-            ...loc.user,
-            location: loc.location, // <-- CRUCIAL: Passar a localização geoespacial para os pins!
-            distance: loc.distance ? `${loc.distance.toFixed(1)} km` : "Perto",
-            isOnline: loc.user?.isOnline || false,
-          }));
+          const formattedUsers = filteredData
+            .map((loc: any) => ({
+              _id: loc.user?._id,
+              ...loc.user,
+              location: loc.location,
+              distance: loc.distance
+                ? `${loc.distance.toFixed(1)} km`
+                : "Perto",
+              isOnline: loc.user?.isOnline || false,
+            }))
+            .filter((user: any) => user._id); // remove usuários inválidos
 
           // 3. Lógica de Paginação
           // Se for página 1, substitui. Se for > 1, adiciona ao final (Load More).
-          setUsers((prev) =>
-            page === 1 ? formattedUsers : [...prev, ...formattedUsers],
-          );
+          setUsers((prev) => {
+            const newUsers =
+              page === 1 ? formattedUsers : [...prev, ...formattedUsers];
+
+            const uniqueUsers = Array.from(
+              new Map(newUsers.map((u) => [u._id, u])).values(),
+            );
+
+            return uniqueUsers;
+          });
 
           // 4. Verifica se há mais para carregar (se veio menos que o limite, acabou)
           setHasMore(rawData.length === 10);
@@ -211,9 +223,9 @@ const Nearby = () => {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {users.map((user) => (
+              {users.map((user, index) => (
                 <PersonCard
-                  key={user._id}
+                  key={user._id || index}
                   person={user}
                   onRouteSelect={(user) => {
                     setSelectedUserForRoute(user);
