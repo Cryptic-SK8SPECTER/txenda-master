@@ -2,16 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   Heart,
   MessageCircle,
-  Star,
-  ShieldCheck,
   MapPin,
   Lock,
   Unlock,
-  Clock,
-  Flame,
-  Flag,
-  Check,
-  Share2,
   ArrowLeft,
   Gem,
   Loader2,
@@ -21,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import ContentCard from "@/components/content/ContentCard";
 import { useAuth } from "@/context/AuthContext";
 import { basicUrl } from "@/utils/index";
 import { userService } from "@/services/userService";
@@ -44,8 +38,7 @@ const Details = () => {
       try {
         setLoading(true);
         const res = await userService.getUser(id);
-        const userData =
-          res.data?.data?.data || res.data?.data || res.data || res;
+        const userData = res.data?.data || res.data || res;
         setTargetUser(userData);
       } catch (err) {
         console.error("Erro ao carregar perfil:", err);
@@ -66,6 +59,8 @@ const Details = () => {
       </div>
     );
   }
+
+  console.log("Target User:", targetUser);
 
   if (!targetUser || !targetUser.profile) {
     return (
@@ -93,7 +88,7 @@ const Details = () => {
               : `${basicUrl}img/users/default.jpg`
           }
           alt={targetUser.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/30" />
         <div className="absolute top-4 left-4">
@@ -135,37 +130,68 @@ const Details = () => {
                 {targetUser.profile.bio}
               </p>
             </section>
+            {/* Contacto — visível apenas para assinantes */}
+            <section>
+              <h3 className="text-lg font-semibold mb-2">Contacto</h3>
+
+              {isSubscriber ? (
+                /* Utilizador é assinante — mostrar o número */
+                targetUser.profile.phone ? (
+                  <a
+                    href={`tel:${targetUser.profile.phone}`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-secondary/30 px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors"
+                  >
+                    <span className="text-base">📞</span>
+                    {targetUser.profile.phone}
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground text-sm italic">
+                    Este utilizador ainda não adicionou um número de contacto.
+                  </p>
+                )
+              ) : (
+                /* Utilizador NÃO é assinante — mostrar mensagem de bloqueio */
+                <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <Lock className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Número bloqueado
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Assine para ver o contacto de{" "}
+                      <span className="font-medium text-foreground/80">
+                        {targetUser.name}
+                      </span>
+                      .
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0 rounded-full text-xs font-bold"
+                    onClick={() => navigate("/dashboard/subscription")}
+                  >
+                    Assinar agora
+                  </Button>
+                </div>
+              )}
+            </section>
           </TabsContent>
 
           {/* TAB GALERIA (FOTOS) */}
           <TabsContent value="galeria" className="mt-6">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {targetUser.contents
                 ?.filter((c: any) => c.type === "photo")
-                .map((photo: any) => {
-                  const isLocked =
-                    (photo.visibility === "Exclusivo assinantes" &&
-                      !isSubscriber) ||
-                    photo.visibility === "Pago individualmente";
-
-                  return (
-                    <div
-                      key={photo._id}
-                      className="aspect-square rounded-lg overflow-hidden relative group bg-secondary/20"
-                    >
-                      <img
-                        src={`${basicUrl}img/contents/${photo.url}`}
-                        className={`w-full h-full object-cover transition-all ${isLocked ? "blur-xl grayscale" : ""}`}
-                        alt=""
-                      />
-                      {isLocked && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <Lock className="text-white h-6 w-6" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                .map((photo: any, index: number) => (
+                  <ContentCard
+                    key={photo._id}
+                    content={photo}
+                    index={index}
+                    route={`/details/${targetUser._id}`}
+                  />
+                ))}
             </div>
           </TabsContent>
 
@@ -180,78 +206,27 @@ const Details = () => {
                   Assine para desbloquear fotos e vídeos exclusivos de{" "}
                   {targetUser.name}.
                 </p>
-                <Button size="sm" className="w-full rounded-full"  onClick={() => navigate("/dashboard/subscription")}>
+                <Button
+                  size="sm"
+                  className="w-full rounded-full"
+                  onClick={() => navigate("/dashboard/subscription")}
+                >
                   Assinar agora
                 </Button>
               </Card>
             )}
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {targetUser.contents
                 ?.filter((c: any) => c.type === "video")
-                .map((video: any) => {
-                  const needsSub =
-                    video.visibility === "Exclusivo assinantes" &&
-                    !isSubscriber;
-                  const needsPay = video.visibility === "Pago individualmente";
-                  const isLocked = needsSub || needsPay;
-
-                  return (
-                    <Card
-                      key={video._id}
-                      className="overflow-hidden border-none bg-secondary/30"
-                    >
-                      <div className="relative aspect-video">
-                        <img
-                          src={`${basicUrl}img/users/${targetUser.profile.photo}`}
-                          className={`w-full h-full object-cover ${isLocked ? "blur-2xl" : ""}`}
-                          alt=""
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-4">
-                          {needsSub ? (
-                            <>
-                              <Lock className="text-white h-8 w-8 mb-2" />
-                              <p className="text-white text-xs font-bold uppercase mb-3">
-                                Exclusivo para Assinantes
-                              </p>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="rounded-full"
-                              >
-                                Subscrever para ver
-                              </Button>
-                            </>
-                          ) : needsPay ? (
-                            <>
-                              <CreditCard className="text-amber-400 h-8 w-8 mb-2" />
-                              <p className="text-white text-xs font-bold uppercase mb-1">
-                                Conteúdo Premium
-                              </p>
-                              <p className="text-white/70 text-[10px] mb-3">
-                                {video.description}
-                              </p>
-                              <Button
-                                size="sm"
-                                className="bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-full"
-                              >
-                                Desbloquear por {video.price?.toFixed(2)} MZN
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              className="rounded-full h-12 w-12"
-                            >
-                              <Unlock className="h-6 w-6" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                .map((video: any, index: number) => (
+                  <ContentCard
+                    key={video._id}
+                    content={video}
+                    index={index}
+                    route={`/details/${targetUser._id}`}
+                  />
+                ))}
             </div>
           </TabsContent>
         </Tabs>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Diamond, Target, Sparkles, Lock } from "lucide-react";
+import { MapPin, Diamond, Target, Sparkles, Lock, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ContentCard from "@/components/content/ContentCard";
@@ -13,6 +13,7 @@ import Pagination from "@/components/content/Pagination";
 import { ITEMS_PER_PAGE, benefits } from "@/utils/index";
 
 const Index = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isSubscribed = false;
   const [currentPage, setCurrentPage] = useState(1);
   const [allContents, setAllContents] = useState([]);
@@ -30,7 +31,7 @@ const Index = () => {
         const res = await contentService.getAllContents(
           currentPage,
           ITEMS_PER_PAGE,
-          undefined,
+          { visibility: "Público" },
         );
 
         // LOG DE DEBUG - Verifique o que aparece no console agora
@@ -98,6 +99,41 @@ const Index = () => {
               </a>
             ))}
           </nav>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6 text-white" />
+            ) : (
+              <Menu className="h-6 w-6 text-white" />
+            )}
+          </button>
+
+          {/* Mobile Menu Overlay */}
+          {mobileMenuOpen && (
+            <div className="absolute top-full left-0 right-0 md:hidden bg-background/95 backdrop-blur-md border-b border-primary/20">
+              <nav className="flex flex-col items-start gap-4 p-6">
+                {[
+                  { label: "ENTRAR", href: "/login" },
+                  { label: "VANTAGENS", href: "#vantagens" },
+                  { label: "CONTEÚDOS", href: "#conteudos" },
+                  { label: "CRIAR CONTEÚDOS", href: "/register" },
+                ].map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground transition-colors w-full"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          )}
         </header>
 
         <div className="relative z-10 container mx-auto px-4 text-center max-w-4xl">
@@ -196,7 +232,7 @@ const Index = () => {
                     content={content}
                     index={i}
                     isLocked={false}
-                    route={"/subscription"}
+                    route={`/details/${content?.creator?.id}`}
                   />
                 ))
               )}

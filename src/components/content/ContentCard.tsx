@@ -5,7 +5,7 @@ import {
   Camera,
   Video,
   Eye,
-  Star,
+  User,
   CreditCard,
   Gem,
   Loader2,
@@ -36,30 +36,22 @@ const ContentCard = ({
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  // ESTADO LOCAL PARA ACESSO
   const [hasPurchased, setHasPurchased] = useState(false);
   const [loadingAccess, setLoadingAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Lógica de Identificação de Tipo
   const isSubscriberContent = content.visibility === "Exclusivo assinantes";
   const isPayPerView = content.visibility === "Pago individualmente";
   const isPublic = content.visibility === "Público";
 
-  // Lógica de Bloqueio
-  // 1. Bloqueado se for exclusivo e o user não for assinante (verificado)
   const needsSubscription = isSubscriberContent && !currentUser?.isVerified;
-
-  // 2. Bloqueado se for PPV e o utilizador ainda não comprou
   const needsPayment = isPayPerView && !hasPurchased;
-
-  // Conteúdos públicos são sempre visíveis (sem qualquer bloqueio)
   const isAlwaysVisible = isPublic;
   const isLocked = !isAlwaysVisible && (needsSubscription || needsPayment);
 
   const [hasRegisteredView, setHasRegisteredView] = useState(false);
 
-  // Verificar acesso PPV ao carregar o card (apenas se for PPV e o user estiver logado)
   useEffect(() => {
     if (currentUser && isPayPerView) {
       const checkPPV = async () => {
@@ -77,7 +69,6 @@ const ContentCard = ({
     }
   }, [content._id, currentUser, isPayPerView]);
 
-  // Função para iniciar o checkout do Stripe para PPV
   const handlePayment = async () => {
     if (!currentUser) {
       toast({
@@ -88,11 +79,9 @@ const ContentCard = ({
       });
       return;
     }
-
     try {
       setLoadingAccess(true);
       const res = await purchaseService.getCheckoutSession(content._id);
-
       if (res.session?.url) {
         window.location.href = res.session.url;
       } else {
@@ -111,6 +100,12 @@ const ContentCard = ({
     }
   };
 
+  const visibilityBadgeStyles = isPublic
+    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+    : isSubscriberContent
+      ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+      : "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+
   return (
     <motion.div
       initial="hidden"
@@ -118,160 +113,189 @@ const ContentCard = ({
       viewport={{ once: true }}
       variants={fadeUp}
       custom={index % 4}
-      className="glass rounded-xl overflow-hidden group hover:scale-[1.03] transition-all duration-300 hover:border-primary/30"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative rounded-2xl overflow-hidden cursor-pointer group"
+      style={{
+        aspectRatio: "3/4",
+        boxShadow: isHovered
+          ? "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)"
+          : "0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04)",
+        transform: isHovered ? "scale(1.03)" : "scale(1)",
+        transition:
+          "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
+      }}
     >
-      <div className="relative aspect-[4/5] overflow-hidden">
-        {/* Se for conteúdo público, é sempre visível; senão só para utilizadores verificados e desbloqueados */}
-        {(isAlwaysVisible || currentUser?.isVerified) && !isLocked ? (
-          <>
-            {content.type === "photo" ? (
-              <img
-                src={`${basicUrl}img/contents/${content.url}`}
-                alt={content.description}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-            ) : (
-              <video
-                src={`${basicUrl}img/contents/${content.url}`}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                muted
-                loop
-                autoPlay
-                playsInline
-              />
-            )}
-          </>
+      {/* ── BACKGROUND MEDIA ── */}
+      <div className="absolute inset-0">
+        {isAlwaysVisible || (currentUser?.isVerified && !isLocked) ? (
+          content.type === "photo" ? (
+            <img
+              src={`${basicUrl}img/contents/${content.url}`}
+              alt={content.description}
+              loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          ) : (
+            <video
+              src={`${basicUrl}img/contents/${content.url}`}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              muted
+              loop
+              autoPlay
+              playsInline
+            />
+          )
         ) : (
-          <div className="w-full h-full bg-black flex flex-col items-center justify-center gap-2 text-center px-4">
-            <Lock className="w-8 h-8 text-primary mb-1" />
-            <p className="text-xs text-muted-foreground">
-              Conteúdo protegido. Apenas utilizadores verificados podem visualizar a mídia.
-            </p>
-          </div>
-        )}
-
-        {/* Gradiente overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-
-        {/* --- LÓGICA DE OVERLAYS --- */}
-        {isLocked && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-background/40 backdrop-blur-md flex flex-col items-center justify-center gap-4 p-6 text-center"
-          >
-            <div className="w-16 h-16 rounded-full bg-background/80 flex items-center justify-center border border-primary/30 shadow-xl">
-              {loadingAccess || checkingAccess ? (
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              ) : (
-                <Lock className="w-8 h-8 text-primary" />
-              )}
-            </div>
-
-            {needsSubscription ? (
-              <div className="space-y-3">
-                <div className="flex flex-col items-center">
-                  <Gem className="w-5 h-5 text-primary mb-1" />
-                  <p className="text-foreground text-sm font-bold uppercase tracking-wider">
-                    Exclusivo Assinantes
-                  </p>
-                </div>
-                <p className="text-muted-foreground text-[11px] leading-relaxed max-w-[180px]">
-                  Subscreva ao perfil de <b>{content.creator.name}</b> para
-                  desbloquear este conteúdo.
-                </p>
-                <Button
-                  variant="cta"
-                  size="sm"
-                  className="rounded-full w-full shadow-lg"
-                  asChild
-                >
-                  <Link to={route}>Subscrever Agora</Link>
-                </Button>
-              </div>
-            ) : needsPayment ? (
-              <div className="space-y-3">
-                <div className="flex flex-col items-center">
-                  <CreditCard className="w-5 h-5 text-amber-500 mb-1" />
-                  <p className="text-foreground text-sm font-bold uppercase tracking-wider">
-                    Pay-Per-View
-                  </p>
-                </div>
-                <p className="text-muted-foreground text-[11px] leading-relaxed max-w-[180px]">
-                  Este conteúdo requer um pagamento único para acesso vitalício.
-                </p>
-                <Button
-                  onClick={handlePayment}
-                  disabled={loadingAccess}
-                  className="rounded-full w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg"
-                >
-                  {loadingAccess ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    `Pagar ${content.price?.toFixed(2)} MZN`
-                  )}
-                </Button>
-              </div>
-            ) : null}
-          </motion.div>
-        )}
-
-        {/* Badges superiores (Tipo e Views) - Só visíveis se não estiver bloqueado */}
-        {!isLocked && (
-          <>
-            <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md rounded-full px-3 py-1">
-              {content.type === "photo" ? (
-                <Camera className="w-3.5 h-3.5 text-primary" />
-              ) : (
-                <Video className="w-3.5 h-3.5 text-primary" />
-              )}
-              <span className="text-[10px] text-white font-bold uppercase tracking-tighter">
-                {content.type === "photo" ? "Foto" : "Vídeo"}
-              </span>
-            </div>
-
-            <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/50 backdrop-blur-md rounded-full px-3 py-1 border border-white/5">
-              <Eye className="w-3.5 h-3.5 text-white/70" />
-              <span className="text-[10px] text-white/70 font-bold">
-                {content.views?.toLocaleString() || 0}
-              </span>
-            </div>
-          </>
+          /* Locked state – dark blurred background */
+          <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
         )}
       </div>
 
-      {/* Informações do conteúdo (Sempre Visíveis) */}
-      <div className="p-4 space-y-3 bg-card/20 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Star className="w-3 h-3 text-primary" />
-            </div>
-            <span className="text-xs font-bold text-foreground/90 truncate max-w-[100px]">
-              {content.creator.name}
+      {/* ── GRADIENT OVERLAYS ── */}
+      {/* Bottom gradient – always present for text legibility */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.0) 70%)",
+        }}
+      />
+      {/* Top gradient – subtle vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 35%)",
+        }}
+      />
+
+      {/* ── TOP BADGES ── */}
+      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+        {/* Type badge */}
+        <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/10">
+          {content.type === "photo" ? (
+            <Camera className="w-3 h-3 text-white/80" />
+          ) : (
+            <Video className="w-3 h-3 text-white/80" />
+          )}
+          <span className="text-[9px] text-white/80 font-bold uppercase tracking-widest">
+            {content.type === "photo" ? "Foto" : "Vídeo"}
+          </span>
+        </div>
+
+        {/* Views – only when unlocked */}
+        {!isLocked && (
+          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/10">
+            <Eye className="w-3 h-3 text-white/60" />
+            <span className="text-[9px] text-white/60 font-bold">
+              {content.views?.toLocaleString() || 0}
             </span>
           </div>
+        )}
+      </div>
 
+      {/* ── LOCKED OVERLAY ── */}
+      {isLocked && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 z-20 backdrop-blur-sm bg-black/50 flex flex-col items-center justify-center gap-4 p-6 text-center"
+        >
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center border border-white/15"
+            style={{ background: "rgba(255,255,255,0.07)" }}
+          >
+            {loadingAccess || checkingAccess ? (
+              <Loader2 className="w-6 h-6 text-white animate-spin" />
+            ) : (
+              <Lock className="w-6 h-6 text-white/80" />
+            )}
+          </div>
+
+          {needsSubscription ? (
+            <div className="space-y-3">
+              <div className="flex flex-col items-center gap-1">
+                <Gem className="w-4 h-4 text-violet-400" />
+                <p className="text-white text-[11px] font-black uppercase tracking-widest">
+                  Exclusivo Assinantes
+                </p>
+              </div>
+              <p className="text-white/50 text-[10px] leading-relaxed max-w-[160px]">
+                Subscreva{" "}
+                <b className="text-white/70">{content.creator.name}</b> para
+                desbloquear este conteúdo.
+              </p>
+              <Button
+                asChild
+                className="rounded-full w-full text-[10px] font-black uppercase tracking-widest h-8 bg-white text-black hover:bg-white/90"
+              >
+                <Link to={route}>Subscrever Agora</Link>
+              </Button>
+            </div>
+          ) : needsPayment ? (
+            <div className="space-y-3">
+              <p className="text-white/50 text-[10px] leading-relaxed max-w-[160px]">
+                Pagamento único para acesso vitalício.
+              </p>
+              <Button
+                onClick={handlePayment}
+                disabled={loadingAccess}
+                className="rounded-full w-full text-[10px] font-black uppercase tracking-widest h-8 bg-amber-500 hover:bg-amber-400 "
+              >
+                {loadingAccess ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                ) : (
+                  `Pagar ${content.price?.toFixed(2)} MZN`
+                )}
+              </Button>
+            </div>
+          ) : null}
+        </motion.div>
+      )}
+
+      {/* ── BOTTOM CONTENT (always visible) ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-4 space-y-2">
+        {/* Visibility badge */}
+        <div className="flex justify-end">
           <span
-            className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-              isPublic
-                ? "bg-green-500/10 text-green-500 border border-green-500/20"
-                : isSubscriberContent
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-            }`}
+            className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${visibilityBadgeStyles}`}
           >
             {content.visibility}
           </span>
         </div>
 
-        <p className="text-xs text-muted-foreground line-clamp-1 italic">
-          "{content.description || "Sem descrição..."}"
-        </p>
+        {/* Title (description) — always visible */}
+        <small
+          className="text-white font-black leading-tight tracking-tight line-clamp-2"
+          style={{
+            fontFamily: "'Georgia', 'Times New Roman', serif",
+            fontSize: "1.2rem",
+          }}
+        >
+          {content.description || "Sem título"}
+        </small>
 
-        <div className="flex items-center justify-between pt-1 border-t border-white/5">
-          <span className="text-primary font-display font-black text-base">
+        {/* Creator name — clickable, links to details */}
+        <Link
+          to={route}
+          className="flex items-center gap-1.5 w-fit group/creator"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+            <User className="w-2.5 h-2.5 text-white/70" />
+          </div>
+          <span className="text-white/60 text-[10px] font-semibold group-hover/creator:text-white transition-colors duration-200 underline-offset-2 group-hover/creator:underline truncate max-w-[120px]">
+            {content.creator.name}
+          </span>
+        </Link>
+
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between pt-1">
+          <span
+            className="font-black text-white"
+            style={{ fontFamily: "'Georgia', serif", fontSize: "0.95rem" }}
+          >
             {content.price === 0 || isPublic
               ? "GRÁTIS"
               : `${content.price?.toFixed(2)} MZN`}
@@ -291,19 +315,15 @@ const ContentCard = ({
               }}
             >
               <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-[10px] uppercase font-bold text-primary hover:bg-primary/10 rounded-full"
-                >
+                <button className="text-[9px] font-black uppercase tracking-widest text-white/80 hover:text-white border border-white/20 hover:border-white/50 rounded-full px-3 py-1 transition-all duration-200 hover:bg-white/10">
                   Ver agora
-                </Button>
+                </button>
               </DialogTrigger>
               <DialogContent className="max-w-[90vw] md:max-w-4xl max-h-[90vh] p-0 border-none bg-black overflow-hidden flex flex-col justify-center">
-                {/* Título invisível para acessibilidade (radix ui exige um DialogTitle) */}
-                <DialogTitle className="sr-only">Visualizar Conteúdo: {content.description}</DialogTitle>
-
-                <div className="w-full h-full flex items-center justify-center relative">
+                <DialogTitle className="sr-only">
+                  Visualizar Conteúdo: {content.description}
+                </DialogTitle>
+                <div className="w-full h-full flex items-center justify-center">
                   {content.type === "photo" ? (
                     <img
                       src={`${basicUrl}img/contents/${content.url}`}

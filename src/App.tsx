@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import SuccessPage from "./pages/SuccessPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
+import Details from "./pages/Details";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/details/:id" element={<Details />} />
             <Route
               path="/subscription"
               element={

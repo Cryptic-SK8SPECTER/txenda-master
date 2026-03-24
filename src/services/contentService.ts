@@ -3,25 +3,28 @@ import { customFetch } from "@/utils/index";
 export const contentService = {
   // Criar novo conteúdo (Upload)
   createContent: async (formData: FormData) => {
-    const response = await customFetch.post('contents', formData, {
+    const response = await customFetch.post("contents", formData, {
       withCredentials: true,
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
   },
 
   // Listar conteúdos do criador logado
   getMyContents: async (page: number = 1, limit: number = 6) => {
-    const response = await customFetch.get(`contents/my-contents?page=${page}&limit=${limit}`, {
-      withCredentials: true
-    });
+    const response = await customFetch.get(
+      `contents/my-contents?page=${page}&limit=${limit}`,
+      {
+        withCredentials: true,
+      },
+    );
     return response.data;
   },
 
   // Apagar conteúdo
   deleteContent: async (id: string) => {
     const response = await customFetch.delete(`contents/${id}`, {
-      withCredentials: true
+      withCredentials: true,
     });
     return response.data;
   },
@@ -44,11 +47,17 @@ export const contentService = {
 
     // Adicionar parâmetros de filtro na URL se existirem
     if (filters) {
-      if (filters.priceRange && (filters.priceRange[0] !== 0 || filters.priceRange[1] !== 100000)) {
+      if (
+        filters.priceRange &&
+        (filters.priceRange[0] !== 0 || filters.priceRange[1] !== 100000)
+      ) {
         url += `&minPrice=${filters.priceRange[0]}&maxPrice=${filters.priceRange[1]}`;
       }
-      
-      if (filters.contentType && filters.contentType.toLowerCase() !== "ambos") {
+
+      if (
+        filters.contentType &&
+        filters.contentType.toLowerCase() !== "ambos"
+      ) {
         const typeMap: Record<string, string> = {
           fotos: "photo",
           vídeos: "video",
@@ -56,9 +65,9 @@ export const contentService = {
         const targetType = typeMap[filters.contentType.toLowerCase()];
         if (targetType) url += `&type=${targetType}`;
       }
-      
+
       if (filters.categories && filters.categories.length > 0) {
-        url += `&categories=${filters.categories.join(',')}`;
+        url += `&categories=${filters.categories.join(",")}`;
       }
 
       if (filters.searchTerm) {
@@ -68,10 +77,13 @@ export const contentService = {
       if (filters.contentDate) {
         url += `&contentDate=${encodeURIComponent(filters.contentDate)}`;
       }
+
+      if (filters.visibility) {
+        url += `&visibility=${encodeURIComponent(filters.visibility)}`;
+      }
     }
 
     const response = await customFetch.get(url);
     return response.data;
   },
 };
-
