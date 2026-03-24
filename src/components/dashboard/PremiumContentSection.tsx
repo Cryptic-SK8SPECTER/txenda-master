@@ -75,7 +75,7 @@ const PremiumContentSection = ({ filters }: PremiumContentSectionProps) => {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <Diamond className="h-5 w-5 text-primary fill-primary/20" />
@@ -96,7 +96,7 @@ const PremiumContentSection = ({ filters }: PremiumContentSectionProps) => {
         >
           Ver Catálogo Completo
         </Button>
-      </div>
+      </div> */}
 
       <AnimatePresence mode="wait">
         <motion.div

@@ -53,6 +53,99 @@ export const NearbyPeopleSection = ({ filters }: NearbyPeopleSectionProps) => {
 
           const formattedUsers = rawData
             .filter((loc: any) => loc.user && loc.user._id !== currentUser?._id)
+            .filter((loc: any) => {
+              const u = loc.user;
+              const profile = u.profile || {};
+
+              // Género
+              if (
+                filters.gender !== "all" &&
+                profile.gender?.toLowerCase() !== filters.gender.toLowerCase()
+              ) {
+                return false;
+              }
+
+              // Idade
+              const age = profile.birthDate
+                ? Math.floor(
+                    (Date.now() - new Date(profile.birthDate).getTime()) /
+                      (365.25 * 24 * 60 * 60 * 1000),
+                  )
+                : null;
+              if (age == null || age < filters.ageRange[0] || age > filters.ageRange[1]) {
+                return false;
+              }
+
+              // Verificados
+              if (
+                (filters.quickFilters.includes("Verificados") ||
+                  filters.profileTypes.includes("Apenas verificados")) &&
+                !u.isVerified
+              ) {
+                return false;
+              }
+
+              // Cidade/País no campo location textual
+              if (
+                filters.city &&
+                !profile.location?.toLowerCase().includes(filters.city.toLowerCase())
+              ) {
+                return false;
+              }
+
+              if (
+                filters.country &&
+                !profile.location
+                  ?.toLowerCase()
+                  .includes(filters.country.toLowerCase())
+              ) {
+                return false;
+              }
+
+              // Pesquisa textual
+              if (filters.searchTerm) {
+                const term = filters.searchTerm.toLowerCase();
+                const match =
+                  u.name?.toLowerCase().includes(term) ||
+                  profile.location?.toLowerCase().includes(term) ||
+                  profile.bio?.toLowerCase().includes(term);
+                if (!match) return false;
+              }
+
+              // Estado
+              if (filters.status === "online" && !u.isOnline) return false;
+              if (filters.status === "today" && !u.isOnline) return false;
+              if (filters.status === "weekend" && !u.isOnline) return false;
+
+              // Quick filters
+              if (
+                filters.quickFilters.includes("Disponíveis Agora") &&
+                !u.isOnline
+              ) {
+                return false;
+              }
+              if (filters.quickFilters.includes("Perto de Mim")) {
+                const km = Number(loc.distance || 0);
+                if (Number.isFinite(km) && km > 10) return false;
+              }
+
+              // Intenções
+              if (
+                filters.intentions.length > 0 &&
+                !filters.intentions.includes("Ambos")
+              ) {
+                const lookingFor = (profile.lookingFor || "").toLowerCase();
+                const matchesIntent = filters.intentions.some((intent) => {
+                  const i = intent.toLowerCase();
+                  if (i.includes("conteúdo")) return lookingFor.includes("conteudos");
+                  if (i.includes("encontro")) return lookingFor.includes("encontros");
+                  return lookingFor.includes("ambos");
+                });
+                if (!matchesIntent) return false;
+              }
+
+              return true;
+            })
             .map(
               (loc: any): Person => ({
                 ...loc.user,

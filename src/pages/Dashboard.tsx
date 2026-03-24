@@ -6,6 +6,8 @@ import NearbyPeopleSection from "@/components/dashboard/NearbyPeopleSection";
 import AvailableNowSection from "@/components/dashboard/AvailableNowSection";
 import PremiumContentSection from "@/components/dashboard/PremiumContentSection";
 import ChatPage from "@/pages/ChatPage";
+import MessagesLayout from "@/pages/MessagesLayout";
+import MessagesPlaceholder from "@/pages/MessagesPlaceholder";
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import Premium from "@/pages/Premium";
 import Nearby from "@/pages/Nearby";
@@ -179,7 +181,7 @@ const Dashboard = () => {
           <DashboardSidebar />
           <div className="flex-1 flex flex-col min-w-0">
             <DashboardHeader />
-            <main className="flex-1 overflow-y-auto pb-20 md:pb-6">
+            <main className="flex flex-1 flex-col min-h-0 overflow-y-auto pb-20 md:pb-6">
               <Routes>
                 <Route index element={<DashboardHome />} />
                 <Route path="profile" element={<Profile />} />
@@ -187,6 +189,10 @@ const Dashboard = () => {
                 <Route path="premium" element={<Premium />} />
                 <Route path="nearby" element={<Nearby />} />
                 <Route path="details/:id" element={<Details />} />
+                <Route path="messages" element={<MessagesLayout />}>
+                  <Route index element={<MessagesPlaceholder />} />
+                  <Route path=":id" element={<ChatPage />} />
+                </Route>
                 <Route path="chat/:id" element={<ChatPage />} />
                 <Route path="subscription" element={<SubscriptionPage />} />
                 <Route path="notifications" element={<NotificationPage />} />

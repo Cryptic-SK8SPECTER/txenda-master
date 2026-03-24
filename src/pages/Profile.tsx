@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,9 @@ const ProfilePage = () => {
     const [showDeleteContentModal, setShowDeleteContentModal] = useState(false);
     const [contentToDelete, setContentToDelete] = useState<any>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
     // Estados de Paginação
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -270,6 +272,41 @@ const ProfilePage = () => {
         transition: { duration: 0.4 },
     };
 
+    const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || !user) return;
+        if (!file.type.startsWith("image/")) {
+            toast({
+                variant: "destructive",
+                title: "Ficheiro inválido",
+                description: "Escolha uma imagem (JPG, PNG, etc.).",
+            });
+            return;
+        }
+        const userId = user._id || user.id;
+        if (!userId) return;
+        setUploadingAvatar(true);
+        try {
+            const fd = new FormData();
+            fd.append("photo", file);
+            const res = await profileService.uploadAvatar(String(userId), fd);
+            const updated = res?.data?.profile;
+            if (updated) {
+                setProfile((prev: any) => ({ ...(prev || {}), ...updated }));
+                toast({ title: "Foto atualizada", description: "A sua foto de perfil foi guardada." });
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao enviar foto",
+                description: error?.response?.data?.message || "Não foi possível atualizar a imagem.",
+            });
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
     return (
         <div className="max-w-5xl mx-auto space-y-6 px-4 py-6">
             {/* 1. Profile Header */}
@@ -283,6 +320,14 @@ const ProfilePage = () => {
                         <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-16 sm:-mt-14">
                             {/* Avatar */}
                             <div className="relative group">
+                                <input
+                                    ref={avatarFileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="sr-only"
+                                    onChange={handleAvatarFileChange}
+                                    disabled={uploadingAvatar}
+                                />
                                 <Avatar className="h-28 w-28 sm:h-32 sm:w-32 border-4 border-card shadow-2xl">
                                     {profile && profile.photo ? (
                                         <AvatarImage src={`${basicUrl}img/users/${profile.photo}`} alt={user?.name} />
@@ -290,8 +335,18 @@ const ProfilePage = () => {
                                         <AvatarFallback className="text-3xl bg-primary/20 text-primary">{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
                                     )}
                                 </Avatar>
-                                <button className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Camera className="h-4 w-4" />
+                                <button
+                                    type="button"
+                                    disabled={uploadingAvatar}
+                                    onClick={() => avatarFileInputRef.current?.click()}
+                                    className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:pointer-events-none disabled:opacity-50"
+                                    aria-label="Alterar foto de perfil"
+                                >
+                                    {uploadingAvatar ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Camera className="h-4 w-4" />
+                                    )}
                                 </button>
                             </div>
 

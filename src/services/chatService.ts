@@ -1,6 +1,12 @@
 import { customFetch } from "@/utils/index";
 
 export const chatService = {
+  /** Lista conversas do utilizador autenticado (ordenadas por atualização) */
+  getMyChats: async () => {
+    const response = await customFetch.get("chats");
+    return response.data;
+  },
+
   /**
    * Carrega as mensagens de um chat específico com paginação
    */
@@ -44,6 +50,25 @@ export const chatService = {
     const response = await customFetch.post("chats/get-or-create", {
       recipientId,
     });
+    return response.data;
+  },
+
+  updateMessage: async (
+    chatId: string,
+    messageId: string,
+    content: string,
+  ) => {
+    const response = await customFetch.patch(
+      `chats/${chatId}/messages/${messageId}`,
+      { content },
+    );
+    return response.data;
+  },
+
+  deleteMessage: async (chatId: string, messageId: string) => {
+    const response = await customFetch.delete(
+      `chats/${chatId}/messages/${messageId}`,
+    );
     return response.data;
   },
 };

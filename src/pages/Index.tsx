@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Diamond, Target, Sparkles, Lock, Menu, X } from "lucide-react";
+import { MapPin, Diamond, Target, Sparkles, Lock, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ContentCard from "@/components/content/ContentCard";
@@ -10,7 +10,32 @@ import { fadeUp } from "@/utils/index";
 import { useToast } from "@/hooks/use-toast";
 import { contentService } from "@/services/contentService";
 import Pagination from "@/components/content/Pagination";
-import { ITEMS_PER_PAGE, benefits } from "@/utils/index";
+import { ITEMS_PER_PAGE, benefits, basicUrl } from "@/utils/index";
+import { cn } from "@/lib/utils";
+
+const CAROUSEL_CONTENTS_LIMIT = 48;
+
+function uniqueCreatorsFromContents(contentArray: any[]) {
+  return Array.from(
+    new Map(
+      (contentArray || [])
+        .filter((c: any) => c?.creator?._id)
+        .map((c: any) => [
+          c.creator._id,
+          {
+            _id: c.creator._id,
+            name: c.creator.name,
+            profile: {
+              photo:
+                c.creator?.profile?.photo ?? c.creator?.photo ?? undefined,
+            },
+            bio: "Criador de conteúdo na plataforma Txenda.",
+            isVerified: false,
+          },
+        ]),
+    ).values(),
+  );
+}
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,6 +44,14 @@ const Index = () => {
   const [allContents, setAllContents] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
+  /** Lista do carrossel: carregada uma vez, não muda com a paginação da grelha. */
+  const [carouselCreators, setCarouselCreators] = useState<any[]>([]);
+  const [carouselLoading, setCarouselLoading] = useState(true);
+  const creatorsCarouselRef = useRef<HTMLDivElement | null>(null);
+  const creatorCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [activeCreatorIndex, setActiveCreatorIndex] = useState(0);
+  /** Quando a fila não enche o ecrã, centramos com flex (scroll sozinho não move nada). */
+  const [creatorsTrackFits, setCreatorsTrackFits] = useState(false);
 
   const { toast } = useToast();
 
@@ -57,10 +90,111 @@ const Index = () => {
     fetchFeed();
   }, [currentPage]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadCarouselCreators = async () => {
+      setCarouselLoading(true);
+      try {
+        const res = await contentService.getAllContents(
+          1,
+          CAROUSEL_CONTENTS_LIMIT,
+          { visibility: "Público" },
+        );
+        const contentArray = res.data?.data || [];
+        if (!cancelled) {
+          setCarouselCreators(uniqueCreatorsFromContents(contentArray));
+        }
+      } catch (err) {
+        console.error("Erro ao carregar criadores do carrossel:", err);
+        if (!cancelled) setCarouselCreators([]);
+      } finally {
+        if (!cancelled) setCarouselLoading(false);
+      }
+    };
+    loadCarouselCreators();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const creators = carouselCreators;
+
+  /** Identidade da lista do carrossel (só muda quando os dados do carrossel mudam). */
+  const creatorsKey = useMemo(
+    () => creators.map((c) => String(c._id)).join("|"),
+    [creators],
+  );
+
+  const safeActiveCreatorIndex =
+    creators.length === 0
+      ? 0
+      : Math.min(activeCreatorIndex, creators.length - 1);
+
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
+
+  const scrollCreatorToCenter = (index: number) => {
+    const track = creatorsCarouselRef.current;
+    const card = creatorCardRefs.current[index];
+    if (!track || !card) return;
+    const targetScroll =
+      card.offsetLeft + card.offsetWidth / 2 - track.clientWidth / 2;
+    track.scrollTo({
+      left: Math.max(0, targetScroll),
+      behavior: "smooth",
+    });
+  };
+
+  const scrollCreators = (direction: "left" | "right") => {
+    if (!creators.length) return;
+    const from = Math.min(
+      activeCreatorIndex,
+      Math.max(0, creators.length - 1),
+    );
+    const nextIndex =
+      direction === "left"
+        ? Math.max(0, from - 1)
+        : Math.min(creators.length - 1, from + 1);
+    setActiveCreatorIndex(nextIndex);
+    requestAnimationFrame(() => {
+      scrollCreatorToCenter(nextIndex);
+    });
+  };
+
+  useEffect(() => {
+    if (carouselLoading) {
+      creatorCardRefs.current = [];
+    }
+  }, [carouselLoading]);
+
+  useEffect(() => {
+    if (carouselLoading || creators.length === 0) return;
+
+    setActiveCreatorIndex(0);
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollCreatorToCenter(0);
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [creatorsKey, carouselLoading]);
+
+  useLayoutEffect(() => {
+    const track = creatorsCarouselRef.current;
+    if (!track || carouselLoading || !creators.length) {
+      setCreatorsTrackFits(false);
+      return;
+    }
+    const measure = () => {
+      setCreatorsTrackFits(track.scrollWidth <= track.clientWidth + 2);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [creatorsKey, carouselLoading, creators.length]);
 
   return (
     <div className="min-h-screen bg-background font-body">
@@ -181,6 +315,118 @@ const Index = () => {
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
 
+      {/* Carrossel de Criadores */}
+      <section className="relative py-14 border-y border-border/50 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25"
+          style={{ backgroundImage: `url(${heroBg})` }}
+        />
+        <div className="absolute inset-0 bg-background/80" />
+
+        <div className="relative container mx-auto px-4 max-w-7xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <motion.p variants={fadeUp} custom={0} className="text-primary tracking-[0.3em] uppercase text-sm mb-4">
+            Perfis
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-display text-3xl md:text-5xl font-bold">
+              criadores de conteúdos 
+            </motion.h2>
+          </motion.div>
+
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 text-white hover:bg-black/60 border border-white/10"
+              onClick={() => scrollCreators("left")}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+
+            <div
+              ref={creatorsCarouselRef}
+              className={cn(
+                "flex gap-4 md:gap-6 overflow-x-auto px-12 md:px-16 py-3 snap-x snap-mandatory scrollbar-hide",
+                creatorsTrackFits && "justify-center",
+              )}
+            >
+              {carouselLoading ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <div
+                    key={`creator-skeleton-${idx}`}
+                    className="min-w-[180px] md:min-w-[220px] h-[300px] md:h-[360px] rounded-sm bg-card/40 animate-pulse"
+                  />
+                ))
+              ) : creators.length > 0 ? (
+                creators.map((creator, idx) => {
+                  const distance = Math.abs(idx - safeActiveCreatorIndex);
+                  const isActive = distance === 0;
+                  const depthClass =
+                    distance === 0
+                      ? "scale-100 opacity-100 z-10"
+                      : distance === 1
+                        ? "scale-90 opacity-70 z-[5]"
+                        : "scale-80 opacity-45 z-0";
+                  return (
+                    <div
+                      key={creator._id}
+                      ref={(el) => {
+                        creatorCardRefs.current[idx] = el;
+                      }}
+                      onClick={() => setActiveCreatorIndex(idx)}
+                      className={`group relative min-w-[180px] md:min-w-[220px] h-[300px] md:h-[360px] snap-center overflow-hidden rounded-xl border border-white/25 shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition-all duration-500 cursor-pointer ${depthClass}`}
+                    >
+                      <img
+                        src={`${basicUrl}img/users/${creator?.profile?.photo || "default.jpg"}`}
+                        alt={creator?.name || "Criador"}
+                        className={`w-full h-full object-cover transition-transform duration-500 ${isActive ? "scale-100" : "scale-110"}`}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" />
+                      <div className="absolute inset-0 border border-white/20 rounded-xl pointer-events-none" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <h4 className="font-display text-2xl md:text-3xl font-bold text-white leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)] truncate">
+                          {creator?.name}
+                        </h4>
+                        <p className="text-[12px] text-white/80 mt-1 line-clamp-1">
+                          Criador de conteúdo premium
+                        </p>
+                        <div className="overflow-hidden transition-all duration-300 max-h-0 group-hover:max-h-14">
+                          <Button
+                            size="sm"
+                            className="mt-2 w-full h-8 text-xs bg-white/90 text-black hover:bg-white"
+                            asChild
+                          >
+                            <Link to={`/details/${creator._id}`}>Ver detalhes</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="w-full rounded-2xl border border-border/60 bg-card/50 p-6 text-sm text-muted-foreground">
+                  Ainda não existem criadores com conteúdos visíveis.
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/40 text-white hover:bg-black/60 border border-white/10"
+              onClick={() => scrollCreators("right")}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Conteúdos de Criadores */}
       <section id="conteudos" className="py-24 bg-background">
         <div className="container mx-auto px-4 max-w-7xl">
@@ -225,16 +471,17 @@ const Index = () => {
               {loading ? (
                 <SkeletonGrid count={8} />
               ) : (
-                // MAPEIE allContents diretamente
-                allContents.map((content, i) => (
-                  <ContentCard
-                    key={content._id}
-                    content={content}
-                    index={i}
-                    isLocked={false}
-                    route={`/details/${content?.creator?.id}`}
-                  />
-                ))
+                // Mostra apenas conteúdos públicos na Home
+                allContents
+                  .filter((content: any) => content?.visibility === "Público")
+                  .map((content, i) => (
+                    <ContentCard
+                      key={content._id}
+                      content={content}
+                      index={i}
+                      route={`/details/${content?.creator?.id}`}
+                    />
+                  ))
               )}
             </motion.div>
           </AnimatePresence>

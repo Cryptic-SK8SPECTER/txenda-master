@@ -13,6 +13,19 @@ export const profileService = {
     return response.data;
   },
 
+  /** Atualizar foto de perfil (multipart, campo `photo`) */
+  uploadAvatar: async (userId: string, formData: FormData) => {
+    const response = await customFetch.post(
+      `profiles/${userId}/avatar`,
+      formData,
+      {
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data;
+  },
+
   // ADICIONAR REDE: Adicionar link social
   addSocialLink: async (userId: string, socialData: { platform: string, url: string, username: string }) => {
     const response = await customFetch.post(`profiles/${userId}/social`, socialData);

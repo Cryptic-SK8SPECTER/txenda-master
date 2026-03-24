@@ -14,8 +14,6 @@ interface AvailableNowSectionProps {
 
 
 const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
- 
-
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
 
@@ -31,26 +29,86 @@ const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
         if (!u.isOnline || u._id === currentUser?._id) return false;
 
         // 2. Filtro de Género
-        if (filters.gender !== "all" && u.gender !== filters.gender)
+        if (
+          filters.gender !== "all" &&
+          u.profile?.gender?.toLowerCase() !== filters.gender.toLowerCase()
+        ) {
           return false;
+        }
 
         // 3. Filtro de Idade
-        const age = u.profile?.age;
+        const age = u.profile?.birthDate
+          ? Math.floor(
+              (Date.now() - new Date(u.profile.birthDate).getTime()) /
+                (365.25 * 24 * 60 * 60 * 1000),
+            )
+          : null;
+        if (age == null) return false;
         if (age < filters.ageRange[0] || age > filters.ageRange[1])
           return false;
 
-        // 4. Filtro de Verificados (Ajustado para bater com o label do seu FilterDialog)
-        if (filters.quickFilters.includes("Verificados") && !u.isVerified) {
+        // 4. Filtro de Verificados (quick filter e profile type)
+        if (
+          (filters.quickFilters.includes("Verificados") ||
+            filters.profileTypes.includes("Apenas verificados")) &&
+          !u.isVerified
+        ) {
+          return false;
+        }
+
+        // Quick filters
+        if (filters.quickFilters.includes("Disponíveis Agora") && !u.isOnline) {
           return false;
         }
 
         // 5. Filtro por Cidade
         if (
           filters.city &&
-          u.profile?.city?.toLowerCase() !== filters.city.toLowerCase()
+          !u.profile?.location
+            ?.toLowerCase()
+            .includes(filters.city.toLowerCase())
         ) {
           return false;
         }
+
+        // 6. País (faz match textual no campo location)
+        if (
+          filters.country &&
+          !u.profile?.location
+            ?.toLowerCase()
+            .includes(filters.country.toLowerCase())
+        ) {
+          return false;
+        }
+
+        // 7. Intenções
+        if (
+          filters.intentions.length > 0 &&
+          !filters.intentions.includes("Ambos")
+        ) {
+          const lookingFor = (u.profile?.lookingFor || "").toLowerCase();
+          const matchesIntent = filters.intentions.some((intent) => {
+            const i = intent.toLowerCase();
+            if (i.includes("conteúdo")) return lookingFor.includes("conteudos");
+            if (i.includes("encontro")) return lookingFor.includes("encontros");
+            return lookingFor.includes("ambos");
+          });
+          if (!matchesIntent) return false;
+        }
+
+        // 8. Pesquisa textual
+        if (filters.searchTerm) {
+          const term = filters.searchTerm.toLowerCase();
+          const nameMatch = u.name?.toLowerCase().includes(term);
+          const locationMatch = u.profile?.location?.toLowerCase().includes(term);
+          const bioMatch = u.profile?.bio?.toLowerCase().includes(term);
+          if (!nameMatch && !locationMatch && !bioMatch) return false;
+        }
+
+        // 9. Estado
+        if (filters.status === "online" && !u.isOnline) return false;
+        if (filters.status === "today" && !u.isOnline) return false;
+        if (filters.status === "weekend" && !u.isOnline) return false;
 
         return true;
       });

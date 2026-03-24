@@ -1,4 +1,4 @@
-import { Search, Bell, MessageCircle, ChevronDown, Check } from "lucide-react";
+import { Search, Bell, ChevronDown, User, CreditCard, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,6 +28,7 @@ const DashboardHeader = () => {
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchInput, setSearchInput] = useState(searchParams.get("search") || "");
 
   useEffect(() => {
     const fetchNotifs = async () => {
@@ -57,20 +58,28 @@ const DashboardHeader = () => {
   };
   const showSearch = location.pathname === "/dashboard";
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const normalizedValue = rawValue.trim().toLowerCase();
+  // Mantém o input sincronizado quando a URL muda por navegação/limpar filtros
+  useEffect(() => {
+    setSearchInput(searchParams.get("search") || "");
+  }, [searchParams]);
 
-    const nextParams = new URLSearchParams(searchParams);
+  // Debounce da pesquisa para reduzir chamadas e evitar "falhas" ao digitar rápido
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const normalizedValue = searchInput.trim().toLowerCase();
+      const nextParams = new URLSearchParams(searchParams);
 
-    if (normalizedValue) {
-      nextParams.set("search", normalizedValue);
-    } else {
-      nextParams.delete("search");
-    }
+      if (normalizedValue) {
+        nextParams.set("search", normalizedValue);
+      } else {
+        nextParams.delete("search");
+      }
 
-    setSearchParams(nextParams);
-  };
+      setSearchParams(nextParams);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchInput, searchParams, setSearchParams]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 backdrop-blur-xl px-4 lg:px-6">
@@ -84,8 +93,8 @@ const DashboardHeader = () => {
         <Input
           placeholder="Pesquisar conteúdos..."
           className="pl-9 bg-secondary border-border/50 focus:border-primary"
-          value={searchParams.get("search") || ""}
-          onChange={handleSearchChange}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
         />
       </div>
 
@@ -151,7 +160,10 @@ const DashboardHeader = () => {
         {/* Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-2 rounded-full hover:bg-secondary/70 border border-transparent hover:border-border/70 transition-all"
+            >
               <Avatar className="h-8 w-8">
                 {profile && profile.photo ? (
                   <AvatarImage src={`${basicUrl}img/users/${profile.photo}`} alt={user?.name} />
@@ -159,26 +171,41 @@ const DashboardHeader = () => {
                   <AvatarFallback className="bg-primary/20 text-primary text-xs">{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
                 )}
               </Avatar>
+              <span className="hidden md:block text-xs font-medium text-foreground max-w-[100px] truncate">
+                {user?.name}
+              </span>
               <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-48 bg-card border-border"
+            className="w-60 bg-card border-border/70 p-1.5 shadow-2xl"
           >
-            <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
-              👤 Meu Perfil
+            <div className="px-2.5 py-2.5 mb-1 rounded-md bg-secondary/30 border border-border/50">
+              <p className="text-[11px] text-muted-foreground">Sessão ativa</p>
+              <p className="text-sm font-semibold text-foreground truncate">{user?.name}</p>
+            </div>
+
+            <DropdownMenuItem
+              onClick={() => navigate("/dashboard/profile")}
+              className="gap-2.5 rounded-md cursor-pointer"
+            >
+              <User className="h-4 w-4 text-primary" />
+              Meu Perfil
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate("/dashboard/subscription")}
+              className="gap-2.5 rounded-md cursor-pointer"
             >
-              💳 Subscrição
+              <CreditCard className="h-4 w-4 text-primary" />
+              Subscrição
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-destructive"
+              className="gap-2.5 rounded-md cursor-pointer text-destructive focus:text-destructive"
             >
+              <LogOut className="h-4 w-4" />
               Sair
             </DropdownMenuItem>
           </DropdownMenuContent>

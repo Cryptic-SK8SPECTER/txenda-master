@@ -5,9 +5,10 @@ import {
   Star,
   Bell,
   CreditCard,
+  MessageCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +23,7 @@ import logo from "@/assets/txenda.png";
 
 const menuItems = [
   { title: "Início", url: "/dashboard", icon: Home },
+  { title: "Mensagens", url: "/dashboard/messages", icon: MessageCircle },
   { title: "Pessoas Próximas", url: "/dashboard/nearby", icon: MapPin },
   { title: "Conteúdo Premium", url: "/dashboard/premium", icon: Diamond },
   { title: "Favoritos", url: "/dashboard/favorites", icon: Star },

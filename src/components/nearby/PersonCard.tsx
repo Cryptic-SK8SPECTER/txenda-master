@@ -42,6 +42,7 @@ const PersonCard = ({ person, onRouteSelect }: PersonCardProps) => {
   const navigate = useNavigate();
   const { calculateAge, user: currentUser } = useAuth();
   const { toast } = useToast();
+  const hasProfile = Boolean(person?.profile?.birthDate || person?.profile?.photo);
 
   // Estados para gerir o favorito localmente
   const [isFavorited, setIsFavorited] = useState(person.isFavorited || false);
@@ -150,8 +151,19 @@ const PersonCard = ({ person, onRouteSelect }: PersonCardProps) => {
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 text-xs hover:bg-primary/10 hover:text-primary px-3"
-            onClick={() => navigate(`/dashboard/details/${person._id}`)}
+            className="h-8 text-xs hover:bg-primary/10 hover:text-primary px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!hasProfile}
+            onClick={() => {
+              if (!hasProfile) {
+                toast({
+                  title: "Perfil indisponível",
+                  description: "Este utilizador ainda não completou o perfil.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              navigate(`/dashboard/details/${person._id}`);
+            }}
           >
             <Eye className="h-3.5 w-3.5 mr-1" /> Perfil
           </Button>
@@ -182,7 +194,7 @@ const PersonCard = ({ person, onRouteSelect }: PersonCardProps) => {
               size="sm"
               variant="ghost"
               className="h-8 px-2"
-              onClick={() => navigate(`/dashboard/chat/${person._id}`)}
+              onClick={() => navigate(`/dashboard/messages/${person._id}`)}
             >
               <MessageCircle className="h-3.5 w-3.5" />
             </Button>

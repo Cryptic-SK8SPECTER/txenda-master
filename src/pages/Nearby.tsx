@@ -48,6 +48,11 @@ const Nearby = () => {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
+  // Quando os filtros mudam, reinicia paginação
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
   // --- Efeito de Busca de Dados ---
   useEffect(() => {
     const fetchNearby = async () => {
@@ -56,7 +61,7 @@ const Nearby = () => {
         setLoading(true);
         try {
           const res = await locationService.getNearbyUsers(
-            50, // Raio de 50km
+            filters.distance, // Raio baseado nos filtros
             location.lat,
             location.lng,
             10, // Limite de 10 por página
@@ -115,10 +120,118 @@ const Nearby = () => {
     };
 
     fetchNearby();
-  }, [location, status, page, currentUser?._id]);
+  }, [location, status, page, currentUser?._id, filters.distance, toast]);
+
+  const parseKm = (distanceLabel: string) => {
+    const match = distanceLabel?.match(/[\d.]+/);
+    return match ? Number(match[0]) : Number.POSITIVE_INFINITY;
+  };
+
+  const filteredUsers = users.filter((u: any) => {
+    const profile = u.profile || {};
+
+    // Quick filters
+    if (filters.quickFilters.includes("Disponíveis Agora") && !u.isOnline) {
+      return false;
+    }
+    if (filters.quickFilters.includes("Verificados") && !u.isVerified) {
+      return false;
+    }
+    if (filters.quickFilters.includes("Perto de Mim") && parseKm(u.distance) > 10) {
+      return false;
+    }
+
+    // Género
+    if (
+      filters.gender !== "all" &&
+      profile.gender?.toLowerCase() !== filters.gender.toLowerCase()
+    ) {
+      return false;
+    }
+
+    // Idade
+    const age = profile.birthDate
+      ? Math.floor(
+          (Date.now() - new Date(profile.birthDate).getTime()) /
+            (365.25 * 24 * 60 * 60 * 1000),
+        )
+      : null;
+    if (age == null || age < filters.ageRange[0] || age > filters.ageRange[1]) {
+      return false;
+    }
+
+    // Estado
+    if (filters.status === "online" && !u.isOnline) return false;
+    if (filters.status === "today" && !u.isOnline) return false;
+    if (filters.status === "weekend" && !u.isOnline) return false;
+
+    // Localização textual
+    if (
+      filters.city &&
+      !profile.location?.toLowerCase().includes(filters.city.toLowerCase())
+    ) {
+      return false;
+    }
+    if (
+      filters.country &&
+      !profile.location?.toLowerCase().includes(filters.country.toLowerCase())
+    ) {
+      return false;
+    }
+
+    // Pesquisa
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      const match =
+        u.name?.toLowerCase().includes(term) ||
+        profile.location?.toLowerCase().includes(term) ||
+        profile.bio?.toLowerCase().includes(term);
+      if (!match) return false;
+    }
+
+    // Tipo de perfil
+    if (
+      filters.profileTypes.includes("Apenas verificados") &&
+      !u.isVerified
+    ) {
+      return false;
+    }
+    if (filters.profileTypes.includes("Perfis premium") && !u.vip) {
+      return false;
+    }
+    if (filters.profileTypes.includes("Conteúdo à venda") && !u.sellsContent) {
+      return false;
+    }
+
+    // Intenções
+    if (filters.intentions.length > 0 && !filters.intentions.includes("Ambos")) {
+      const lookingFor = (profile.lookingFor || "").toLowerCase();
+      const matchesIntent = filters.intentions.some((intent) => {
+        const i = intent.toLowerCase();
+        if (i.includes("conteúdo")) return lookingFor.includes("conteudos");
+        if (i.includes("encontro")) return lookingFor.includes("encontros");
+        return lookingFor.includes("ambos");
+      });
+      if (!matchesIntent) return false;
+    }
+
+    return true;
+  });
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (sortOption === "online_agora") {
+      return Number(Boolean(b.isOnline)) - Number(Boolean(a.isOnline));
+    }
+    if (sortOption === "novos_perfis") {
+      const ad = a.profile?.createdAt ? new Date(a.profile.createdAt).getTime() : 0;
+      const bd = b.profile?.createdAt ? new Date(b.profile.createdAt).getTime() : 0;
+      return bd - ad;
+    }
+    return parseKm(a.distance) - parseKm(b.distance); // mais_proximos
+  });
 
   // Contadores visuais (Baseados no que foi carregado)
-  const onlineCount = users.filter((u) => u.isOnline).length;
+  const onlineCount = sortedUsers.filter((u) => u.isOnline).length;
   
 
   return (
@@ -223,7 +336,7 @@ const Nearby = () => {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {users.map((user, index) => (
+              {sortedUsers.map((user, index) => (
                 <PersonCard
                   key={user._id || index}
                   person={user}
@@ -236,7 +349,7 @@ const Nearby = () => {
             </div>
 
             {/* Paginação Estilo Load More */}
-            {users.length > 0 && (
+            {sortedUsers.length > 0 && (
               <div className="mt-8 flex justify-center">
                 {hasMore ? (
                   <Button
@@ -259,11 +372,11 @@ const Nearby = () => {
               </div>
             )}
 
-            {users.length === 0 && !loading && (
+            {sortedUsers.length === 0 && !loading && (
               <div className="text-center py-20">
                 <MapPin className="h-10 w-10 text-muted/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">
-                  Não encontramos ninguém num raio de 50km.
+                  Não encontramos ninguém para estes filtros.
                 </p>
               </div>
             )}

@@ -245,7 +245,7 @@ const Details = () => {
         </Button>
         <Button
           className="flex-1 h-12 rounded-full font-bold"
-          onClick={() => navigate(`/dashboard/chat/${targetUser._id}`)}
+          onClick={() => navigate(`/dashboard/messages/${targetUser._id}`)}
         >
           <MessageCircle className="h-5 w-5 mr-2" /> Enviar Mensagem
         </Button>

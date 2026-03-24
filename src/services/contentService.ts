@@ -78,8 +78,23 @@ export const contentService = {
         url += `&contentDate=${encodeURIComponent(filters.contentDate)}`;
       }
 
-      if (filters.visibility) {
-        url += `&visibility=${encodeURIComponent(filters.visibility)}`;
+      if (filters.quickFilters?.includes("Conteúdo Premium")) {
+        url += `&premiumOnly=true`;
+      }
+
+      if (filters.popularity && filters.popularity.length > 0) {
+        const popularityMap: Record<string, string> = {
+          "Mais visualizados": "views",
+          "Mais bem avaliados": "rating",
+          "Novos membros": "newest",
+          "Mais ativos": "active",
+        };
+        const sortBy = popularityMap[filters.popularity[0]];
+        if (sortBy) url += `&sortBy=${sortBy}`;
+      }
+
+      if (filters.creatorRating) {
+        url += `&creatorRating=${encodeURIComponent(filters.creatorRating)}`;
       }
     }
 
