@@ -119,17 +119,21 @@ const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
             >
               <div className="relative">
                 <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-yellow-500 p-[2px]">
-                  {photoSrc ? (
-                    <img
-                      src={photoSrc}
-                      alt={user.name}
-                      className="h-full w-full rounded-full border-2 border-background object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-semibold text-muted-foreground">
-                      {(user.name || "?").charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <img
+                    src={photoSrc}
+                    alt={user.name}
+                    className="h-full w-full rounded-full border-2 border-background object-cover"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      // Evita loops caso também falhe o default.jpg.
+                      if (img.dataset.fallback === "1") return;
+                      img.dataset.fallback = "1";
+                      const name = user?.name || "User";
+                      img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        name,
+                      )}&background=111827&color=ffffff&size=128`;
+                    }}
+                  />
                 </div>
                 <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" />
               </div>
