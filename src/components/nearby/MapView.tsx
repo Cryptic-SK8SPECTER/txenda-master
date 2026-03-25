@@ -154,7 +154,11 @@ const MapView = ({ users, currentLocation, selectedUserForRoute, loggedInUser }:
                 <div className="text-center min-w-[120px]">
                   <h3 className="font-bold text-sm">{user.name}</h3>
                   <p className="text-xs text-gray-500 mb-2">{user.gender === 'm' ? 'Masculino' : user.gender === 'f' ? 'Feminino' : user.gender}</p>
-                  <p className="text-xs font-semibold text-primary">{user.distance ? user.distance : 'Perto'}</p>
+                  <p className="text-xs font-semibold text-primary">
+                    {typeof user.distance === "number" && Number.isFinite(user.distance)
+                      ? `${user.distance.toFixed(1)} km`
+                      : user.distance || "Perto"}
+                  </p>
                 </div>
               </Popup>
             </Marker>

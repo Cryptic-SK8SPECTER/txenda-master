@@ -6,6 +6,7 @@ import PersonCard from "@/components/nearby/PersonCard";
 import { favoriteService } from "@/services/favoriteService";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { basicUrl } from "@/utils/index";
 
 const Favorites = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -29,14 +30,23 @@ const Favorites = () => {
         .map((fav: any) => {
           // Verifica se o alvo é um Utilizador ou Conteúdo para definir o nome corretamente
           const isUser = fav.targetType === "User" || fav.targetType === "user";
+          const target = fav.targetId || {};
+          const rawPhoto = target?.profile?.photo || target?.photo || "";
+          const normalizedPhoto =
+            typeof rawPhoto === "string" && rawPhoto.trim()
+              ? rawPhoto.startsWith("http")
+                ? rawPhoto
+                : `${basicUrl}img/users/${rawPhoto}`
+              : undefined;
 
           return {
-            ...fav.targetId,
-            _id: fav.targetId._id,
+            ...target,
+            _id: target._id,
             // Proteção contra valores nulos que causam a "tela preta"
             name: isUser
-              ? fav.targetId.name
-              : fav.targetId.description || "Conteúdo Premium",
+              ? target.name
+              : target.description || "Conteúdo Premium",
+            photo: normalizedPhoto,
             favoriteId: fav._id,
             isFavorited: true,
           };
@@ -61,6 +71,37 @@ const Favorites = () => {
   useEffect(() => {
     fetchFavorites();
   }, [user?._id]);
+
+  const handleFavoriteToggle = async (person: any, nextValue: boolean) => {
+    // Nesta página só suportamos remoção (nextValue=false)
+    if (nextValue) return;
+    if (!person?.favoriteId) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível remover este favorito.",
+      });
+      return;
+    }
+
+    const previousItems = items;
+    setItems((prev) => prev.filter((p) => p.favoriteId !== person.favoriteId));
+
+    try {
+      await favoriteService.removeFavorite(person.favoriteId);
+      toast({
+        title: "Removido",
+        description: "Perfil removido dos favoritos.",
+      });
+    } catch (err: any) {
+      setItems(previousItems);
+      toast({
+        variant: "destructive",
+        title: "Erro ao remover",
+        description: err?.response?.data?.message || "Tenta novamente.",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -117,6 +158,7 @@ const Favorites = () => {
               <PersonCard
                 key={person._id || person.favoriteId}
                 person={person}
+                onFavoriteToggle={handleFavoriteToggle}
               />
             ))}
           </div>

@@ -26,9 +26,20 @@ export const userService = {
     return response.data;
   },
 
-  // DESATIVAR CONTA (Delete Me)
+  // DESATIVAR CONTA (soft: active = false)
   deleteMe: async () => {
     const response = await customFetch.delete("users/deleteMe");
+    return response.data;
+  },
+
+  reactivateMe: async () => {
+    const response = await customFetch.patch("users/reactivateMe");
+    return response.data;
+  },
+
+  /** Criador: apaga todos os conteúdos + ficheiros; todos: active = false */
+  deleteAccountPermanent: async () => {
+    const response = await customFetch.delete("users/deleteAccountPermanent");
     return response.data;
   },
 

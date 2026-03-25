@@ -1,34 +1,47 @@
 import { Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getSocket } from "@/services/authService";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { userService } from "@/services/userService"; // Importa o teu serviço
+import { userService } from "@/services/userService";
 import { basicUrl } from "@/utils/index";
 import { useAuth } from "@/context/AuthContext";
 import { type FilterState } from "@/types/filters";
+import { cn } from "@/lib/utils";
 
 interface AvailableNowSectionProps {
   filters: FilterState;
 }
 
 
+/** Limite alto: o default do serviço é 6, insuficiente para encontrar quem está online. */
+const ONLINE_CREATORS_FETCH_LIMIT = 250;
+
 const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
   const { data: onlineUsers } = useQuery({
-    // Adicionamos 'filters' aqui para que a query saiba que depende deles
-    queryKey: ["online-creators", filters],
-    queryFn: () => userService.getAllUsers(),
+    queryKey: [
+      "online-creators",
+      currentUser?._id,
+      filters.gender,
+      filters.quickFilters,
+      filters.profileTypes,
+    ],
+    queryFn: () =>
+      userService.getAllUsers("creator", ONLINE_CREATORS_FETCH_LIMIT),
+    enabled: !!currentUser?._id,
     select: (res) => {
       const allUsers = res.data.data || [];
 
       return allUsers.filter((u: any) => {
-        // 1. Filtro base: Online e não ser o próprio utilizador
+        // isOnline vem do User (socket / presença), não do Profile
         if (!u.isOnline || u._id === currentUser?._id) return false;
 
-        // 2. Filtro de Género
+        // Género: único filtro “forte” partilhado com o resto do dashboard
         if (
           filters.gender !== "all" &&
           u.profile?.gender?.toLowerCase() !== filters.gender.toLowerCase()
@@ -36,18 +49,7 @@ const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
           return false;
         }
 
-        // 3. Filtro de Idade
-        const age = u.profile?.birthDate
-          ? Math.floor(
-              (Date.now() - new Date(u.profile.birthDate).getTime()) /
-                (365.25 * 24 * 60 * 60 * 1000),
-            )
-          : null;
-        if (age == null) return false;
-        if (age < filters.ageRange[0] || age > filters.ageRange[1])
-          return false;
-
-        // 4. Filtro de Verificados (quick filter e profile type)
+        // Verificados só quando o utilizador pediu explicitamente
         if (
           (filters.quickFilters.includes("Verificados") ||
             filters.profileTypes.includes("Apenas verificados")) &&
@@ -55,60 +57,6 @@ const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
         ) {
           return false;
         }
-
-        // Quick filters
-        if (filters.quickFilters.includes("Disponíveis Agora") && !u.isOnline) {
-          return false;
-        }
-
-        // 5. Filtro por Cidade
-        if (
-          filters.city &&
-          !u.profile?.location
-            ?.toLowerCase()
-            .includes(filters.city.toLowerCase())
-        ) {
-          return false;
-        }
-
-        // 6. País (faz match textual no campo location)
-        if (
-          filters.country &&
-          !u.profile?.location
-            ?.toLowerCase()
-            .includes(filters.country.toLowerCase())
-        ) {
-          return false;
-        }
-
-        // 7. Intenções
-        if (
-          filters.intentions.length > 0 &&
-          !filters.intentions.includes("Ambos")
-        ) {
-          const lookingFor = (u.profile?.lookingFor || "").toLowerCase();
-          const matchesIntent = filters.intentions.some((intent) => {
-            const i = intent.toLowerCase();
-            if (i.includes("conteúdo")) return lookingFor.includes("conteudos");
-            if (i.includes("encontro")) return lookingFor.includes("encontros");
-            return lookingFor.includes("ambos");
-          });
-          if (!matchesIntent) return false;
-        }
-
-        // 8. Pesquisa textual
-        if (filters.searchTerm) {
-          const term = filters.searchTerm.toLowerCase();
-          const nameMatch = u.name?.toLowerCase().includes(term);
-          const locationMatch = u.profile?.location?.toLowerCase().includes(term);
-          const bioMatch = u.profile?.bio?.toLowerCase().includes(term);
-          if (!nameMatch && !locationMatch && !bioMatch) return false;
-        }
-
-        // 9. Estado
-        if (filters.status === "online" && !u.isOnline) return false;
-        if (filters.status === "today" && !u.isOnline) return false;
-        if (filters.status === "weekend" && !u.isOnline) return false;
 
         return true;
       });
@@ -134,25 +82,7 @@ const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
     };
   }, [queryClient]);
 
-  // Se não houver ninguém online, podes retornar null ou uma mensagem
   if (!onlineUsers || onlineUsers.length === 0) return null;
-
-  //  const filtered = available.filter((p) => {
-  //    // Age range
-  //    if (p.age < filters.ageRange[0] || p.age > filters.ageRange[1])
-  //      return false;
-  //    // Gender
-  //    if (filters.gender !== "all" && p.gender !== filters.gender) return false;
-  //    // Verified
-  //    if (filters.profileTypes.includes("Apenas verificados") && !p.verified)
-  //      return false;
-  //    // Quick filter: Verificados
-  //    if (filters.quickFilters.includes("Verificados") && !p.verified)
-  //      return false;
-  //    return true;
-  //  });
-
-  //  if (filtered.length === 0) return null;
 
   return (
     <section>
@@ -167,27 +97,48 @@ const AvailableNowSection = ({ filters }: AvailableNowSectionProps) => {
       </div>
 
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-        {onlineUsers.map((user: any) => (
-          <button
-            key={user._id}
-            className="flex flex-col items-center gap-2 min-w-[80px] group"
-          >
-            <div className="relative">
-              <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-primary to-yellow-500">
-                <img
-                  src={`${basicUrl}img/users/${user.profile?.photo}`}
-                  alt={user.name}
-                  className="w-full h-full rounded-full object-cover border-2 border-background"
-                />
+        {onlineUsers.map((user: any) => {
+          const photoSrc = user.profile?.photo
+            ? `${basicUrl}img/users/${user.profile.photo}`
+            : `${basicUrl}img/users/default.jpg`;
+          const go = () => {
+            if (user._id) navigate(`/details/${user._id}`);
+          };
+
+          return (
+            <button
+              key={user._id}
+              type="button"
+              onClick={go}
+              disabled={!user._id}
+              className={cn(
+                "flex min-w-[80px] flex-col items-center gap-2 group",
+                user._id && "cursor-pointer",
+                !user._id && "cursor-default opacity-80",
+              )}
+            >
+              <div className="relative">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-yellow-500 p-[2px]">
+                  {photoSrc ? (
+                    <img
+                      src={photoSrc}
+                      alt={user.name}
+                      className="h-full w-full rounded-full border-2 border-background object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-semibold text-muted-foreground">
+                      {(user.name || "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" />
               </div>
-              {/* Indicador de Online */}
-              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-background" />
-            </div>
-            <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors truncate w-20">
-              {user.name.split(" ")[0]}
-            </span>
-          </button>
-        ))}
+              <span className="w-20 truncate text-xs text-muted-foreground transition-colors group-hover:text-foreground">
+                {(user.name || "").split(" ")[0] || "—"}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );

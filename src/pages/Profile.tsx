@@ -66,6 +66,7 @@ import { profileService } from "@/services/profileService";
 import { userService } from "@/services/userService";
 import { contentService } from "@/services/contentService";
 import { analyticsService } from "@/services/analyticsService";
+import { useNavigate } from "react-router-dom";
 
 const mockAnalytics = {
     totalViews: 22130,
@@ -92,7 +93,8 @@ export const visibilityLabels: Record<string, { label: string; color: string; ic
 };
 const ProfilePage = () => {
 
-    const { user, profile, setProfile, setUser, calculateAge } = useAuth();
+    const { user, profile, subscription, setProfile, setUser, calculateAge, logout } = useAuth();
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [editData, setEditData] = useState({ ...profile, name: user?.name || "" });
 
@@ -108,7 +110,12 @@ const ProfilePage = () => {
     const [contentToDelete, setContentToDelete] = useState<any>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [accountActionLoading, setAccountActionLoading] = useState(false);
+    const [permanentDeleteLoading, setPermanentDeleteLoading] = useState(false);
+    const [verificationRequested, setVerificationRequested] = useState(false);
     const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
+    const accountActive = user?.active !== false;
 
     // Estados de Paginação
     const [page, setPage] = useState(1);
@@ -170,6 +177,31 @@ const ProfilePage = () => {
         }
     }, [profile, user]); // O efeito corre sempre que o profile ou user mudarem
 
+    useEffect(() => {
+        if (!user?._id) return;
+        const pending = localStorage.getItem(`verification_request:${user._id}`) === "1";
+        setVerificationRequested(pending);
+    }, [user?._id]);
+
+    const handleRequestVerification = () => {
+        if (!user?._id || user?.isVerified) return;
+        const hasActiveSubscription = !!subscription?.plan?._id && subscription?.status === "active";
+        if (!hasActiveSubscription) {
+            toast({
+                title: "Subscrição necessária",
+                description: "Para solicitar verificação, selecione um plano e conclua o pagamento.",
+            });
+            navigate("/dashboard/subscription");
+            return;
+        }
+        localStorage.setItem(`verification_request:${user._id}`, "1");
+        setVerificationRequested(true);
+        toast({
+            title: "Pedido enviado",
+            description: "Recebemos o seu pedido de verificação. A equipa irá analisar em breve.",
+        });
+    };
+
     // --- Estatísticas Dinâmicas do Criador ---
     const totalContentViews = contents.reduce((acc, content) => acc + (content.views || 0), 0);
     const totalContentSales = contents.reduce((acc, content) => acc + (content.sales || 0), 0);
@@ -202,6 +234,96 @@ const ProfilePage = () => {
 
 
     const age = profile?.birthDate ? calculateAge(profile.birthDate) : null;
+
+    const persistUser = (next: any) => {
+        setUser(next);
+        try {
+            localStorage.setItem("user", JSON.stringify(next));
+        } catch {
+            /* ignore */
+        }
+    };
+
+    const handleDeactivateAccount = async () => {
+        if (!accountActive) {
+            setShowDeactivateModal(false);
+            return;
+        }
+        setAccountActionLoading(true);
+        try {
+            await userService.deleteMe();
+            try {
+                const meRes = await userService.getMe();
+                const fresh = meRes?.data?.data;
+                if (fresh) {
+                    persistUser(fresh);
+                } else {
+                    persistUser({ ...user, active: false });
+                }
+            } catch {
+                persistUser({ ...user, active: false });
+            }
+            setShowDeactivateModal(false);
+            toast({
+                title: "Conta desativada",
+                description:
+                    "O teu perfil e conteúdos deixam de aparecer na página inicial até reativares.",
+            });
+        } catch (err: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao desativar",
+                description: err?.response?.data?.message || "Tenta novamente.",
+            });
+        } finally {
+            setAccountActionLoading(false);
+        }
+    };
+
+    const handleReactivateAccount = async () => {
+        setAccountActionLoading(true);
+        try {
+            const res = await userService.reactivateMe();
+            const next = res?.data?.user ?? { ...user, active: true };
+            persistUser(next);
+            toast({
+                title: "Conta reativada",
+                description: "O teu perfil e conteúdos voltam a ser visíveis publicamente.",
+            });
+        } catch (err: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao reativar",
+                description: err?.response?.data?.message || "Tenta novamente.",
+            });
+        } finally {
+            setAccountActionLoading(false);
+        }
+    };
+
+    const handlePermanentDeleteAccount = async () => {
+        setPermanentDeleteLoading(true);
+        try {
+            await userService.deleteAccountPermanent();
+            setShowDeleteModal(false);
+            toast({
+                title: "Conta encerrada",
+                description:
+                    user?.role === "creator"
+                        ? "Todos os teus conteúdos foram removidos e a conta foi desativada."
+                        : "A tua conta foi desativada.",
+            });
+            logout();
+        } catch (err: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao excluir conta",
+                description: err?.response?.data?.message || "Tenta novamente.",
+            });
+        } finally {
+            setPermanentDeleteLoading(false);
+        }
+    };
 
     const handleSave = async () => {
         setIsLoading(true);
@@ -665,8 +787,17 @@ const ProfilePage = () => {
                             </div>
                             {user.isVerified ? (
                                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Verificado</Badge>
+                            ) : verificationRequested ? (
+                                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">Pendente</Badge>
                             ) : (
-                                <Button size="sm" variant="outline" className="text-xs h-7">Solicitar</Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7"
+                                    onClick={handleRequestVerification}
+                                >
+                                    {subscription?.status === "active" ? "Solicitar" : "Escolher plano"}
+                                </Button>
                             )}
                         </div>
                         <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary/80 transition-colors">
@@ -675,11 +806,23 @@ const ProfilePage = () => {
                                 <div>
                                     <p className="text-sm font-medium">Estado da Conta</p>
                                     <p className="text-xs text-muted-foreground">
-                                        A sua conta está {profile?.isActive ? "ativa" : "inativa"}
+                                        A sua conta está {accountActive ? "ativa" : "inativa"}
+                                        {!accountActive &&
+                                            " — o teu perfil e conteúdos não aparecem na página inicial."}
                                     </p>
                                 </div>
                             </div>
-                            <Switch checked={profile?.isActive} onCheckedChange={(v) => setProfile({ ...profile, isActive: v })} />
+                            <Switch
+                                checked={accountActive}
+                                disabled={accountActionLoading}
+                                onCheckedChange={(v) => {
+                                    if (v) {
+                                        void handleReactivateAccount();
+                                    } else {
+                                        setShowDeactivateModal(true);
+                                    }
+                                }}
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -697,9 +840,20 @@ const ProfilePage = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                             <div>
                                 <p className="text-sm font-medium">Desativar Conta</p>
-                                <p className="text-xs text-muted-foreground">A sua conta ficará invisível temporariamente</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {accountActive
+                                        ? "A sua conta ficará invisível temporariamente para outros utilizadores."
+                                        : "A conta já está inativa. Usa o interruptor em «Estado da Conta» para reativar."}
+                                </p>
                             </div>
-                            <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setShowDeactivateModal(true)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="border-destructive/50 text-destructive hover:bg-destructive/10 shrink-0"
+                                disabled={!accountActive || accountActionLoading}
+                                onClick={() => setShowDeactivateModal(true)}
+                            >
                                 Desativar
                             </Button>
                         </div>
@@ -756,6 +910,48 @@ const ProfilePage = () => {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+                <DialogContent className="bg-card border-border">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="h-5 w-5" /> Excluir conta permanentemente
+                        </DialogTitle>
+                        <DialogDescription className="space-y-2 text-left">
+                            <span className="block">
+                                Esta ação não pode ser desfeita. A tua conta será desativada e deixarás de aparecer na plataforma.
+                            </span>
+                            {user?.role === "creator" ? (
+                                <span className="block text-destructive/90">
+                                    Como criador, <strong>todos os teus conteúdos</strong> serão apagados da base de dados e os ficheiros removidos do servidor.
+                                </span>
+                            ) : null}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDeleteModal(false)}
+                            disabled={permanentDeleteLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => void handlePermanentDeleteAccount()}
+                            disabled={permanentDeleteLoading}
+                        >
+                            {permanentDeleteLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    A excluir…
+                                </>
+                            ) : (
+                                "Confirmar exclusão"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={showDeactivateModal} onOpenChange={setShowDeactivateModal}>
                 <DialogContent className="bg-card border-border">
@@ -766,9 +962,28 @@ const ProfilePage = () => {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setShowDeactivateModal(false)}>Cancelar</Button>
-                        <Button variant="destructive" onClick={() => { setProfile({ ...profile, isActive: false }); setShowDeactivateModal(false); toast({ title: "Conta desativada" }); }}>
-                            Desativar
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowDeactivateModal(false)}
+                            disabled={accountActionLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => void handleDeactivateAccount()}
+                            disabled={accountActionLoading || !accountActive}
+                        >
+                            {accountActionLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    A desativar…
+                                </>
+                            ) : (
+                                "Desativar"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

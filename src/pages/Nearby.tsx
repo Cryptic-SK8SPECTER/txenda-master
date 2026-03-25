@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   MapPin,
   Bell,
@@ -27,8 +28,12 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { type FilterState, defaultFilters } from "@/types/filters";
+import { basicUrl } from "@/utils/index";
 
 const Nearby = () => {
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+
   // --- Estados de UI ---
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -52,6 +57,20 @@ const Nearby = () => {
   useEffect(() => {
     setPage(1);
   }, [filters]);
+
+  // Abrir mapa + rota vindo do dashboard (PersonCard sem onRouteSelect)
+  useEffect(() => {
+    const st = routerLocation.state as {
+      openRouteForPerson?: { location?: { coordinates?: number[] } };
+    } | null;
+    const p = st?.openRouteForPerson;
+    const coords = p?.location?.coordinates;
+    if (p && Array.isArray(coords) && coords.length >= 2) {
+      setSelectedUserForRoute(p);
+      setViewMode("map");
+      navigate(routerLocation.pathname, { replace: true, state: {} });
+    }
+  }, [routerLocation.state, routerLocation.pathname, navigate]);
 
   // --- Efeito de Busca de Dados ---
   useEffect(() => {
@@ -78,16 +97,35 @@ const Nearby = () => {
 
           // 2. Formatação para o PersonCard
           const formattedUsers = filteredData
-            .map((loc: any) => ({
-              _id: loc.user?._id,
-              ...loc.user,
-              location: loc.location,
-              distance: loc.distance
-                ? `${loc.distance.toFixed(1)} km`
-                : "Perto",
-              isOnline: loc.user?.isOnline || false,
-            }))
-            .filter((user: any) => user._id); // remove usuários inválidos
+            .map((loc: any) => {
+              const u = loc.user;
+              if (!u?._id) return null;
+              const profile = u.profile || {};
+              const age = profile.birthDate
+                ? Math.floor(
+                    (Date.now() - new Date(profile.birthDate).getTime()) /
+                      (365.25 * 24 * 60 * 60 * 1000),
+                  )
+                : 0;
+              const dist =
+                typeof loc.distance === "number" && Number.isFinite(loc.distance)
+                  ? loc.distance
+                  : 0;
+              return {
+                ...u,
+                _id: u._id,
+                location: loc.location,
+                distance: dist,
+                age,
+                photo: profile.photo
+                  ? `${basicUrl}img/users/${profile.photo}`
+                  : undefined,
+                isOnline: u.isOnline || false,
+              };
+            })
+            .filter(
+              (user): user is NonNullable<typeof user> => user != null,
+            );
 
           // 3. Lógica de Paginação
           // Se for página 1, substitui. Se for > 1, adiciona ao final (Load More).
@@ -122,9 +160,13 @@ const Nearby = () => {
     fetchNearby();
   }, [location, status, page, currentUser?._id, filters.distance, toast]);
 
-  const parseKm = (distanceLabel: string) => {
-    const match = distanceLabel?.match(/[\d.]+/);
-    return match ? Number(match[0]) : Number.POSITIVE_INFINITY;
+  const distanceKm = (d: unknown) => {
+    if (typeof d === "number" && Number.isFinite(d)) return d;
+    if (typeof d === "string") {
+      const match = d.match(/[\d.]+/);
+      return match ? Number(match[0]) : Number.POSITIVE_INFINITY;
+    }
+    return Number.POSITIVE_INFINITY;
   };
 
   const filteredUsers = users.filter((u: any) => {
@@ -137,7 +179,7 @@ const Nearby = () => {
     if (filters.quickFilters.includes("Verificados") && !u.isVerified) {
       return false;
     }
-    if (filters.quickFilters.includes("Perto de Mim") && parseKm(u.distance) > 10) {
+    if (filters.quickFilters.includes("Perto de Mim") && distanceKm(u.distance) > 10) {
       return false;
     }
 
@@ -227,7 +269,7 @@ const Nearby = () => {
       const bd = b.profile?.createdAt ? new Date(b.profile.createdAt).getTime() : 0;
       return bd - ad;
     }
-    return parseKm(a.distance) - parseKm(b.distance); // mais_proximos
+    return distanceKm(a.distance) - distanceKm(b.distance); // mais_proximos
   });
 
   // Contadores visuais (Baseados no que foi carregado)

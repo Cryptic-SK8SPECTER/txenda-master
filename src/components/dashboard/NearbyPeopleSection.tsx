@@ -6,7 +6,8 @@ import { locationService } from "@/services/locationService";
 import { useAuth } from "@/context/AuthContext";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { type FilterState } from "@/types/filters";
-import PersonCard, { type Person } from "@/components/nearby/PersonCard"; // Ajuste o caminho conforme o seu projeto
+import PersonCard, { type Person } from "@/components/nearby/PersonCard";
+import { basicUrl } from "@/utils/index";
 
 interface NearbyPeopleSectionProps {
   filters: FilterState;
@@ -146,15 +147,36 @@ export const NearbyPeopleSection = ({ filters }: NearbyPeopleSectionProps) => {
 
               return true;
             })
-            .map(
-              (loc: any): Person => ({
-                ...loc.user,
-                verified: loc.user.isVerified, // Mapeia isVerified para verified
-                distance: loc.distance
-                  ? `${loc.distance.toFixed(1)} km`
-                  : "Perto de você",
-              }),
-            );
+            .map((loc: any): Person => {
+              const u = loc.user;
+              const profile = u.profile || {};
+              const age = profile.birthDate
+                ? Math.floor(
+                    (Date.now() - new Date(profile.birthDate).getTime()) /
+                      (365.25 * 24 * 60 * 60 * 1000),
+                  )
+                : 0;
+              const dist =
+                typeof loc.distance === "number" && Number.isFinite(loc.distance)
+                  ? loc.distance
+                  : 0;
+              return {
+                _id: u._id,
+                name: u.name,
+                age,
+                distance: dist,
+                photo: profile.photo
+                  ? `${basicUrl}img/users/${profile.photo}`
+                  : undefined,
+                isOnline: u.isOnline,
+                isVerified: u.isVerified,
+                isVip: u.isVip,
+                sellsContent: u.sellsContent,
+                availableToday: u.availableToday,
+                location: loc.location,
+                profile: profile._id ? { _id: String(profile._id) } : undefined,
+              };
+            });
 
           setUsers(formattedUsers);
         } catch (err) {
