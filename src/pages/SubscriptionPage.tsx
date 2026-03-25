@@ -157,6 +157,7 @@ const SubscriptionPage = () => {
       accentSoft: "text-amber-100/80",
       accentBg: "bg-amber-400/90",
       bar: "bg-amber-400/90",
+        border: "border-amber-300/35",
       badge: "bg-amber-400/10 text-amber-200 border-amber-300/30",
       cta: "bg-amber-400/90 hover:bg-amber-400 text-black",
       alertTitle: "Seu plano VIP exige atenção!",
@@ -169,6 +170,7 @@ const SubscriptionPage = () => {
         accentSoft: "text-violet-100/80",
         accentBg: "bg-violet-400/90",
         bar: "bg-violet-400/90",
+          border: "border-violet-300/35",
         badge: "bg-violet-400/10 text-violet-200 border-violet-300/30",
         cta: "bg-violet-400/90 hover:bg-violet-400 text-white",
         alertTitle: "Atenção ao seu plano Premium",
@@ -180,6 +182,7 @@ const SubscriptionPage = () => {
         accentSoft: "text-primary/80",
         accentBg: "bg-primary/90",
         bar: "bg-primary/90",
+          border: "border-primary/35",
         badge: "bg-primary/10 text-primary/90 border-primary/25",
         cta: "",
         alertTitle: "Precisamos da sua atenção!",
@@ -214,8 +217,9 @@ const SubscriptionPage = () => {
       </div>
 
       {/* Plano Atual (estilo painel informativo) */}
-      <section className="px-4 lg:px-8 max-w-6xl mx-auto mb-8">
-        <div className="bg-background border border-border/50 rounded-2xl p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {isActivePlan && (
+        <section className="px-4 lg:px-8 max-w-6xl mx-auto mb-8">
+          <div className="bg-background border border-border/50 rounded-2xl p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* LEFT */}
           <div className="flex flex-col gap-6">
@@ -301,8 +305,9 @@ const SubscriptionPage = () => {
             </div>
           </div>
 
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* Grid de Planos */}
       <div className="px-4 lg:px-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">

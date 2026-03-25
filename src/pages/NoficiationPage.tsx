@@ -117,7 +117,7 @@ const NotificationPage = () => {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="px-4 lg:px-6 py-6 max-w-3xl mx-auto w-full">
+    <div className="w-full px-4 lg:px-6 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

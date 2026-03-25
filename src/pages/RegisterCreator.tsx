@@ -60,21 +60,24 @@ const Register = () => {
       phone: "",
       location: "",
       role: "creator",
+      terms: false,
     },
   });
+
+  const genderValue = watch("gender");
+  const lookingForValue = watch("lookingFor");
+
+  const maxBirthDate = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().split("T")[0];
+  })();
 
   // Monitorar progresso do carrossel — CORRIGIDO: useEffect em vez de useState
   useEffect(() => {
     if (!api) return;
     api.on("select", () => setCurrentStep(api.selectedScrollSnap()));
   }, [api]);
-
-  // Debug de erros em desenvolvimento
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log("Campos com erro:", errors);
-    }
-  }, [errors]);
 
   const ErrorMessage = ({ name }: { name: keyof RegisterFormValues }) => {
     const error = errors[name];
@@ -210,11 +213,12 @@ const Register = () => {
                     <div className="grid gap-2">
                       <Label>Telefone</Label>
                       <Input {...register("phone")} placeholder="+258 ..." />
+                      <ErrorMessage name="phone" />
                     </div>
 
                     <div className="grid gap-2">
                       <Label>Data de Nascimento</Label>
-                      <Input {...register("birthDate")} type="date" />
+                      <Input {...register("birthDate")} type="date" max={maxBirthDate} />
                       <ErrorMessage name="birthDate" />
                     </div>
 
@@ -233,10 +237,15 @@ const Register = () => {
                   <div className="space-y-4 p-1">
                     <div className="grid gap-2">
                       <Label>Gênero</Label>
-                      <Select onValueChange={(v) => setValue("gender", v as any, { shouldValidate: true })}>
+                      <Select
+                        value={genderValue ?? undefined}
+                        onValueChange={(v) =>
+                          setValue("gender", v as any, { shouldValidate: true })
+                        }
+                      >
                         <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                         <SelectContent>
-                          {["masculino", "feminino", "outro", "prefiro_nao_dizer"].map((g) => (
+                          {["masculino", "feminino", "outro"].map((g) => (
                             <SelectItem key={g} value={g}>{g}</SelectItem>
                           ))}
                         </SelectContent>
@@ -246,7 +255,12 @@ const Register = () => {
 
                     <div className="grid gap-2">
                       <Label>O que procura?</Label>
-                      <Select onValueChange={(v) => setValue("lookingFor", v as any, { shouldValidate: true })}>
+                      <Select
+                        value={lookingForValue ?? undefined}
+                        onValueChange={(v) =>
+                          setValue("lookingFor", v as any, { shouldValidate: true })
+                        }
+                      >
                         <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                         <SelectContent>
                           {["conteudos", "encontros", "ambos"].map((o) => (
@@ -261,6 +275,7 @@ const Register = () => {
                     <div className="grid gap-2">
                       <Label>Localização (Opcional)</Label>
                       <Input {...register("location")} placeholder="Cidade, Estado - País" />
+                      <ErrorMessage name="location" />
                     </div>
 
                     <div className="flex gap-2 mt-4">

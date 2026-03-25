@@ -430,7 +430,7 @@ const ProfilePage = () => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 px-4 py-6">
+        <div className="w-full space-y-6 px-4 py-6 lg:px-6 xl:px-8">
             {/* 1. Profile Header */}
             <motion.div {...fadeIn}>
                 <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
@@ -451,11 +451,17 @@ const ProfilePage = () => {
                                     disabled={uploadingAvatar}
                                 />
                                 <Avatar className="h-28 w-28 sm:h-32 sm:w-32 border-4 border-card shadow-2xl">
-                                    {profile && profile.photo ? (
-                                        <AvatarImage src={`${basicUrl}img/users/${profile.photo}`} alt={user?.name} />
-                                    ) : (
-                                        <AvatarFallback className="text-3xl bg-primary/20 text-primary">{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
-                                    )}
+                                    <AvatarImage
+                                        src={
+                                            profile && profile.photo
+                                                ? `${basicUrl}img/users/${profile.photo}`
+                                                : `${basicUrl}img/users/default.jpg`
+                                        }
+                                        alt={user?.name}
+                                    />
+                                    <AvatarFallback className="text-3xl bg-primary/20 text-primary">
+                                        {user?.name?.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
                                 </Avatar>
                                 <button
                                     type="button"
@@ -615,7 +621,6 @@ const ProfilePage = () => {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {contents.map((content) => {
                                     const vis = visibilityLabels[content.visibility as keyof typeof visibilityLabels] ?? visibilityLabels["Público"];
-                                    console.log("visibility value:", JSON.stringify(content.visibility));
                                     return (
                                         <div key={content._id} className="group relative rounded-lg overflow-hidden bg-secondary/50 aspect-square">
                                             {content.type === "video" ? (

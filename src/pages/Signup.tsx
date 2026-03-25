@@ -38,15 +38,9 @@ const Signup = () => {
       password: "",
       passwordConfirm: "",
       role: "user",
+      terms: false,
     },
   });
-
-  // Adicione isto dentro do componente Signup
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log("ERROS DE VALIDAÇÃO:", errors);
-    }
-  }, [errors]);
 
 
   const onSubmit = async (data: any) => {
@@ -109,25 +103,55 @@ const Signup = () => {
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <Label htmlFor="displayName">Nome de exibição</Label>
-              <Input  {...register("displayName")} placeholder="Como quer ser chamado(a)" className="mt-1.5 bg-secondary border-border" />
+              <Input
+                {...register("displayName")}
+                placeholder="Como quer ser chamado(a)"
+                className={`mt-1.5 bg-secondary border-border ${
+                  errors.displayName ? "border-destructive" : ""
+                }`}
+              />
               <ErrorMessage name="displayName" />
             </div>
 
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input {...register("email")} placeholder="seu@email.com" className="mt-1.5 bg-secondary border-border" />
+              <Input
+                {...register("email")}
+                placeholder="seu@email.com"
+                autoComplete="email"
+                inputMode="email"
+                className={`mt-1.5 bg-secondary border-border ${
+                  errors.email ? "border-destructive" : ""
+                }`}
+              />
               <ErrorMessage name="email" />
             </div>
 
             <div>
               <Label htmlFor="password">Palavra-passe</Label>
-              <Input {...register("password")} type="password" placeholder="••••••••" className="mt-1.5 bg-secondary border-border" />
+              <Input
+                {...register("password")}
+                type="password"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className={`mt-1.5 bg-secondary border-border ${
+                  errors.password ? "border-destructive" : ""
+                }`}
+              />
               <ErrorMessage name="password" />
             </div>
 
             <div>
               <Label htmlFor="confirmPassword">Confirmar</Label>
-              <Input {...register("passwordConfirm")} type="password" placeholder="••••••••" className="mt-1.5 bg-secondary border-border" />
+              <Input
+                {...register("passwordConfirm")}
+                type="password"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className={`mt-1.5 bg-secondary border-border ${
+                  errors.passwordConfirm ? "border-destructive" : ""
+                }`}
+              />
               <ErrorMessage name="passwordConfirm" />
             </div>
 

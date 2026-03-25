@@ -16,12 +16,21 @@ import * as z from "zod";
 // --- ESQUEMA DE VALIDAÇÃO ZOD ---
 export const schema = z
   .object({
-    email: z.string().email("E-mail inválido"),
+    email: z
+      .string()
+      .trim()
+      .email("E-mail inválido"),
     password: z.string().min(8, "Mínimo 8 caracteres"),
     passwordConfirm: z.string().min(8, "Mínimo 8 caracteres"),
-    displayName: z.string().min(2, "Nome muito curto"),
+    displayName: z
+      .string()
+      .trim()
+      .min(2, "Nome muito curto"),
     role: z.string(),
-    bio: z.string().max(500).optional(),
+    bio: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().max(500).optional(),
+    ),
     birthDate: z.string().refine((date) => {
       const birth = new Date(date);
       const now = new Date();
@@ -30,8 +39,21 @@ export const schema = z
     }, "Você deve ter pelo menos 18 anos"),
     gender: z.enum(["masculino", "feminino", "outro"]),
     lookingFor: z.enum(["conteudos", "encontros", "ambos"]),
-    location: z.string().optional(),
-    phone: z.string().optional(),
+    location: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().optional(),
+    ),
+    phone: z.preprocess(
+      (v) => {
+        if (typeof v !== "string") return v;
+        const cleaned = v.replace(/\s+/g, "").replace(/-/g, "").trim();
+        return cleaned === "" ? undefined : cleaned;
+      },
+      z
+        .string()
+        .regex(/^\+?[0-9]{8,15}$/, "Telefone inválido. Use apenas números (com ou sem +).")
+        .optional(),
+    ),
     terms: z.literal(true, {
       errorMap: () => ({ message: "Você deve aceitar os termos" }),
     }),
@@ -101,10 +123,10 @@ export const fadeUp = {
 
 export const schemasignup = z
   .object({
-    email: z.string().email("E-mail inválido"),
+    email: z.string().trim().email("E-mail inválido"),
     password: z.string().min(8, "Mínimo 8 caracteres"),
     passwordConfirm: z.string().min(8, "Mínimo 8 caracteres"),
-    displayName: z.string().min(2, "Nome muito curto"),
+    displayName: z.string().trim().min(2, "Nome muito curto"),
     role: z.string(),
     terms: z.literal(true, {
       errorMap: () => ({ message: "Você deve aceitar os termos" }),
