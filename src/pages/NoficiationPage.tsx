@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   getMyNotifications,
   markNotificationAsRead,
+  deleteNotification,
   type Notification,
 } from "@/services/notificationService";
 import { formatDistanceToNow } from "date-fns";
@@ -75,14 +76,16 @@ const NotificationPage = () => {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      const updated = await markNotificationAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
-      );
+      // UX imediata: remove da lista assim que marcar como lida
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      await markNotificationAsRead(id);
+      await deleteNotification(id);
     } catch (err: any) {
+      // Em caso de erro, recarrega para manter consistência
+      await fetchNotifications();
       toast({
         title: "Erro",
-        description: err.message || "Não foi possível marcar como lida.",
+        description: err.message || "Não foi possível concluir esta ação.",
         variant: "destructive",
       });
     }
@@ -91,12 +94,19 @@ const NotificationPage = () => {
   const handleMarkAllAsRead = async () => {
     const unread = notifications.filter((n) => !n.read);
     try {
-      await Promise.all(unread.map((n) => markNotificationAsRead(n._id)));
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      toast({ title: "Todas as notificações marcadas como lidas." });
+      // Remove imediatamente as não lidas da UI
+      setNotifications((prev) => prev.filter((n) => n.read));
+      await Promise.all(
+        unread.map(async (n) => {
+          await markNotificationAsRead(n._id);
+          await deleteNotification(n._id);
+        }),
+      );
+      toast({ title: "Notificações lidas removidas." });
     } catch {
+      await fetchNotifications();
       toast({
-        title: "Erro ao marcar todas como lidas.",
+        title: "Erro ao processar notificações.",
         variant: "destructive",
       });
     }

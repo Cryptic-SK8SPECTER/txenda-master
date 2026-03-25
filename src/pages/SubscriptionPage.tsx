@@ -128,9 +128,9 @@ const SubscriptionPage = () => {
   );
   const daysRemaining = endsAt
     ? Math.max(
-        0,
-        Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      )
+      0,
+      Math.ceil((endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    )
     : Math.max(0, cycleDays - elapsedDays);
   const usedDays = Math.min(cycleDays, Math.max(0, cycleDays - daysRemaining));
   const progress = Math.min(100, Math.max(0, (usedDays / cycleDays) * 100));
@@ -152,39 +152,39 @@ const SubscriptionPage = () => {
 
   const planTone = isVipCurrent
     ? {
-        panel: "border-amber-300/20 bg-amber-400/5",
-        accentText: "text-amber-200",
-        accentSoft: "text-amber-100/80",
-        accentBg: "bg-amber-400/90",
-        bar: "bg-amber-400/90",
-        badge: "bg-amber-400/10 text-amber-200 border-amber-300/30",
-        cta: "bg-amber-400/90 hover:bg-amber-400 text-black",
-        alertTitle: "Seu plano VIP exige atenção!",
-        alertMsg: "Mantenha os benefícios VIP atualizados para acesso máximo.",
-      }
+      panel: "border-amber-300/20 bg-amber-400/5",
+      accentText: "text-amber-200",
+      accentSoft: "text-amber-100/80",
+      accentBg: "bg-amber-400/90",
+      bar: "bg-amber-400/90",
+      badge: "bg-amber-400/10 text-amber-200 border-amber-300/30",
+      cta: "bg-amber-400/90 hover:bg-amber-400 text-black",
+      alertTitle: "Seu plano VIP exige atenção!",
+      alertMsg: "Mantenha os benefícios VIP atualizados para acesso máximo.",
+    }
     : isPremiumCurrent
       ? {
-          panel: "border-violet-300/20 bg-violet-400/5",
-          accentText: "text-violet-200",
-          accentSoft: "text-violet-100/80",
-          accentBg: "bg-violet-400/90",
-          bar: "bg-violet-400/90",
-          badge: "bg-violet-400/10 text-violet-200 border-violet-300/30",
-          cta: "bg-violet-400/90 hover:bg-violet-400 text-white",
-          alertTitle: "Atenção ao seu plano Premium",
-          alertMsg: "Atualize/renove para continuar com recursos Premium ativos.",
-        }
+        panel: "border-violet-300/20 bg-violet-400/5",
+        accentText: "text-violet-200",
+        accentSoft: "text-violet-100/80",
+        accentBg: "bg-violet-400/90",
+        bar: "bg-violet-400/90",
+        badge: "bg-violet-400/10 text-violet-200 border-violet-300/30",
+        cta: "bg-violet-400/90 hover:bg-violet-400 text-white",
+        alertTitle: "Atenção ao seu plano Premium",
+        alertMsg: "Atualize/renove para continuar com recursos Premium ativos.",
+      }
       : {
-          panel: "border-primary/20 bg-primary/5",
-          accentText: "text-primary/90",
-          accentSoft: "text-primary/80",
-          accentBg: "bg-primary/90",
-          bar: "bg-primary/90",
-          badge: "bg-primary/10 text-primary/90 border-primary/25",
-          cta: "",
-          alertTitle: "Precisamos da sua atenção!",
-          alertMsg: "O seu plano poderá precisar de atualização em breve.",
-        };
+        panel: "border-primary/20 bg-primary/5",
+        accentText: "text-primary/90",
+        accentSoft: "text-primary/80",
+        accentBg: "bg-primary/90",
+        bar: "bg-primary/90",
+        badge: "bg-primary/10 text-primary/90 border-primary/25",
+        cta: "",
+        alertTitle: "Precisamos da sua atenção!",
+        alertMsg: "O seu plano poderá precisar de atualização em breve.",
+      };
 
   if (isLoading) {
     return (
@@ -215,107 +215,93 @@ const SubscriptionPage = () => {
 
       {/* Plano Atual (estilo painel informativo) */}
       <section className="px-4 lg:px-8 max-w-6xl mx-auto mb-8">
-        <Card className="border-border/50 bg-card/55 backdrop-blur-sm p-6 md:p-7 shadow-[0_8px_30px_-18px_rgba(0,0,0,0.55)]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <h2 className="text-[1.75rem] font-display font-semibold text-foreground">
-                Plano Atual
-              </h2>
-              <div>
-                <p className="text-xl font-semibold text-foreground">
-                  O seu plano atual é{" "}
-                  <span className={planTone.accentText}>{planName}</span>
-                </p>
-                <p className="text-muted-foreground">
-                  {isActivePlan
-                    ? "Acesso ativo com todos os benefícios deste nível."
-                    : "Ainda sem plano ativo. Escolha um plano para desbloquear tudo."}
-                </p>
-              </div>
+        <div className="bg-background border border-border/50 rounded-2xl p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-              <div>
-                <p className="text-foreground font-medium">
-                  Ativo até{" "}
-                  {endsAt
-                    ? endsAt.toLocaleDateString("pt-PT", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "—"}
-                </p>
-                <p className="text-muted-foreground">
-                  Avisaremos antes da expiração da sua subscrição.
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[1.8rem] font-semibold text-foreground">
-                  {planPriceText}{" "}
-                  <Badge className={`ml-2 ${planTone.badge}`}>
-                    {currentPlanBadge}
-                  </Badge>
-                </p>
-                <p className="text-muted-foreground">
-                  Plano ideal para começar e crescer com segurança.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3 pt-1">
-                <Button
-                  onClick={() => navigate("/dashboard/subscription")}
-                  className={`h-11 px-7 rounded-xl font-semibold shadow-none ${planTone.cta}`}
-                >
-                  Fazer upgrade
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/subscription/cancel")}
-                  className="h-11 px-7 rounded-xl border-red-300/35 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                >
-                  Cancelar subscrição
-                </Button>
-              </div>
+          {/* LEFT */}
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">Plano atual</p>
+              <p className="text-sm text-muted-foreground">Acesso ativo com todos os benefícios deste nível.</p>
             </div>
 
-            <div className="space-y-4">
-              <div className={`rounded-xl border p-4 ${planTone.panel}`}>
-                <div className="flex items-start gap-3">
-                  <div className={`rounded-md text-white p-1.5 ${planTone.accentBg}`}>
-                    <AlertTriangle className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className={`text-[1.65rem] font-semibold ${planTone.accentText}`}>
-                      {planTone.alertTitle}
-                    </p>
-                    <p className={planTone.accentSoft}>
-                      {planTone.alertMsg}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-medium text-foreground">{planName}</span>
+              <span className={`text-xs font-medium px-3 py-1 rounded-full ${planTone.badge}`}>
+                {currentPlanBadge}
+              </span>
+            </div>
 
-              <div>
-                <div className="mb-2 flex items-center justify-between text-foreground">
-                  <span className="font-semibold">Dias</span>
-                  <span className="font-semibold">
-                    {usedDays} de {cycleDays} dias
-                  </span>
-                </div>
-                <div className="h-2.5 rounded-full bg-secondary/55 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${planTone.bar}`}
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-lg text-muted-foreground">
-                  Restam <span className="text-foreground font-semibold">{daysRemaining}</span>{" "}
-                  dias para atualizar/renovar o plano.
-                </p>
-              </div>
+            <div>
+              <p className="text-[15px] font-medium text-foreground">
+                Ativo até{" "}
+                {endsAt
+                  ? endsAt.toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" })
+                  : "—"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Avisaremos antes da expiração da subscrição.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-3xl font-medium text-foreground">
+                {planPriceText}{" "}
+                <span className="text-base font-normal text-muted-foreground">/mês</span>
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Plano ideal para começar e crescer com segurança.
+              </p>
+            </div>
+
+            <div className="border-t border-border/50 pt-5 flex flex-wrap gap-3">
+              <Button
+                onClick={() => navigate("/dashboard/subscription")}
+                className="h-9 px-5 rounded-lg text-sm font-medium bg-foreground text-background hover:opacity-90 shadow-none"
+              >
+                Fazer upgrade
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/subscription/cancel")}
+                className="h-9 px-5 rounded-lg text-sm font-medium border-red-300/40 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+              >
+                Cancelar subscrição
+              </Button>
             </div>
           </div>
-        </Card>
+
+          {/* RIGHT */}
+          <div className="flex flex-col gap-5">
+            <div className={`rounded-xl border p-4 flex gap-3 items-start ${planTone.panel}`}>
+              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-background/60 border ${planTone.border}`}>
+                <AlertTriangle className={`h-4 w-4 ${planTone.accentText}`} />
+              </div>
+              <div>
+                <p className={`text-sm font-medium ${planTone.accentText}`}>{planTone.alertTitle}</p>
+                <p className={`text-sm mt-0.5 opacity-80 ${planTone.accentText}`}>{planTone.alertMsg}</p>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">Dias utilizados</span>
+                <span className="text-sm text-muted-foreground">{usedDays} de {cycleDays} dias</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${planTone.bar}`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Restam{" "}
+                <span className="text-foreground font-medium">{daysRemaining} dias</span>{" "}
+                para atualizar ou renovar o plano.
+              </p>
+            </div>
+          </div>
+
+        </div>
       </section>
 
       {/* Grid de Planos */}
